@@ -1,6 +1,5 @@
 # 1530-Crumbs
 A repository for our 1530 Project, Seat Saver
-Crumbs!
 
 Team Members:
 Erik Lehmann (eml249@pitt.edu)

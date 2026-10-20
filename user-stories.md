@@ -76,10 +76,10 @@ FR: FR1, FR2, FR6
 
 Priority: Should 
 
-MVP: no
+MVP: No
 
 - [ ] The system is able to take the user's location, either from user input or by taking location data. 
-- [ ]A list is then generated, first showing buildings closer to the user’s location. 
+- [ ] A list is then generated, first showing buildings closer to the user’s location. 
 
  
 
@@ -90,10 +90,10 @@ FR: FR1, FR2
 
 Priority: Could 
 
-MVP: no
+MVP: No
 
-- [ ]The student can choose to display a list of rooms and buildings open or available at a specific date and time. 
-- [ ]An accurate list is generated, showing spaces that will be available at the time queried. 
+- [ ] The student can choose to display a list of rooms and buildings open or available at a specific date and time. 
+- [ ] An accurate list is generated, showing spaces that will be available at the time queried. 
 
  
 
@@ -104,10 +104,10 @@ FR: FR1, FR2, FR3
 
 Priority: Must 
 
-MVP: yes
+MVP: Yes
 
 - [ ] The system can read congestion data from popular study spaces and display it to students. 
-- [ ]The student can see congestion information 
+- [ ] The student can see congestion information 
 
  
 
@@ -121,7 +121,7 @@ Priority: Could
 MVP: No
 
 - [ ] The student can create and save a list of favorite buildings and study areas, and add and remove buildings or study areas to it 
-- [ ]The student can access buildings from this list and modify them at a later date. 
+- [ ] The student can access buildings from this list and modify them at a later date. 
 
  
 
@@ -132,7 +132,7 @@ FR: FR2, FR10
 
 Priority: Should
 
-MVP: no
+MVP: No
 
 - [ ] Rooms and study spaces are stored and presented with labelled types. 
 - [ ] Students can sort rooms by type and search for spaces with a specific type. 

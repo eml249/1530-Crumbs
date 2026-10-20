@@ -66,10 +66,10 @@ MVP: yes
 
 
 
-#E2:  View Study Spaces 
+# E2:  View Study Spaces 
 Students can view available study spaces and when they are available for booking. 
 
-##US6:  View nearby study spaces 
+## US6:  View nearby study spaces 
 As a student I want to view what study spaces are available near me, so I do not have to spend time traveling to a study space. 
 
 FR: FR1, FR2, FR6 
@@ -83,7 +83,7 @@ MVP: No
 
  
 
-##US7: Find study spaces by time 
+## US7: Find study spaces by time 
 As a student I want to know when study spaces are available, so I know when I am able to use or reserve these spaces. 
 
 FR: FR1, FR2 
@@ -97,7 +97,7 @@ MVP: No
 
  
 
-##US8:  Find empty study spaces 
+## US8:  Find empty study spaces 
 As a student I want to be able to find quiet study spaces that aren't congested, so I am able to find a quiet and open space where I can focus on studying. 
 
 FR: FR1, FR2, FR3 
@@ -111,7 +111,7 @@ MVP: Yes
 
  
 
-##US9:  Save favorite buildings 
+## US9:  Save favorite buildings 
 As a student I want to be able to save the buildings I use so that I can access them more quickly and easily in the future. 
 
 FR: FR9, FR14 
@@ -125,7 +125,7 @@ MVP: No
 
  
 
-U10: Sort rooms by type 
+## US10: Sort rooms by type 
 As a student I want to be able to view rooms of different types so that I can find spaces to suit my needs. (i.e. study group vs club meetings) 
 
 FR: FR2, FR10 

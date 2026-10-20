@@ -64,20 +64,75 @@ MVP: yes
 - [ ] The student enters their Pitt credentials to view the bookings associated with their account.
 - [ ] The student can view the room's location and time of their booking. 
 
-# E2:
-(fill in later)
 
-## US6:
-(fill in later)
 
-## US7:
-(fill in later)
+#E2:  View Study Spaces 
+Students can view available study spaces and when they are available for booking. 
 
-## US8:
-(fill in later)
+##US6:  View nearby study spaces 
+As a student I want to view what study spaces are available near me, so I do not have to spend time traveling to a study space. 
 
-## US9:
-(fill in later)
+FR: FR1, FR2, FR6 
 
-## US10:
-(fill in later)
+Priority: Should 
+
+MVP: no
+
+- [ ] The system is able to take the user's location, either from user input or by taking location data. 
+- [ ]A list is then generated, first showing buildings closer to the user’s location. 
+
+ 
+
+##US7: Find study spaces by time 
+As a student I want to know when study spaces are available, so I know when I am able to use or reserve these spaces. 
+
+FR: FR1, FR2 
+
+Priority: Could 
+
+MVP: no
+
+- [ ]The student can choose to display a list of rooms and buildings open or available at a specific date and time. 
+- [ ]An accurate list is generated, showing spaces that will be available at the time queried. 
+
+ 
+
+##US8:  Find empty study spaces 
+As a student I want to be able to find quiet study spaces that aren't congested, so I am able to find a quiet and open space where I can focus on studying. 
+
+FR: FR1, FR2, FR3 
+
+Priority: Must 
+
+MVP: yes
+
+- [ ] The system can read congestion data from popular study spaces and display it to students. 
+- [ ]The student can see congestion information 
+
+ 
+
+##US9:  Save favorite buildings 
+As a student I want to be able to save the buildings I use so that I can access them more quickly and easily in the future. 
+
+FR: FR9, FR14 
+
+Priority: Could 
+
+MVP: No
+
+- [ ] The student can create and save a list of favorite buildings and study areas, and add and remove buildings or study areas to it 
+- [ ]The student can access buildings from this list and modify them at a later date. 
+
+ 
+
+U10: Sort rooms by type 
+As a student I want to be able to view rooms of different types so that I can find spaces to suit my needs. (i.e. study group vs club meetings) 
+
+FR: FR2, FR10 
+
+Priority: Should
+
+MVP: no
+
+- [ ] Rooms and study spaces are stored and presented with labelled types. 
+- [ ] Students can sort rooms by type and search for spaces with a specific type. 

@@ -19,7 +19,7 @@ As a student, I want to change the time of my study room booking so that I have 
 
 FR: FR4, FR5, FR7 
 
-Priority: no 
+Priority: Could
 
 MVP: no 
 
@@ -32,7 +32,7 @@ As a student, I want to change the room I have reserved so that I can reserve a 
 
 FR: FR4, FR5, FR10 
 
-Priority: no 
+Priority: Could
 
 MVP: no 
 
@@ -45,7 +45,7 @@ As a student, I want to select filters when searching for a new room so that the
 
 FR: FR5, FR10 
 
-Priority: no 
+Priority: Should
 
 MVP: yes 
 

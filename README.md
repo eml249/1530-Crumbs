@@ -6,6 +6,7 @@ Erik Lehmann (eml249@pitt.edu)
 Noah Schaab (nms170@pitt.edu)
 Jared Young (jjy23@pitt.edu)
 Jack Carfrey (jac961@pitt.edu)
+Thanh Mai (btm100@pitt.edu) 
 
 Project Purpose:
 Finding open study spaces around the Pitt campus whether that be an open space or private room.

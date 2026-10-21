@@ -17,7 +17,7 @@ MVP: yes
 ## US2: Edit booking time
 As a student, I want to change the time of my study room booking so that I have it reserved for a time that better suits my availability. 
 
-FR: FR4, FR5, FR7 
+FR: FR5, FR7 
 
 Priority: Could
 
@@ -30,7 +30,7 @@ MVP: no
 ## US3: Edit booked room
 As a student, I want to change the room I have reserved so that I can reserve a new room that better fits my needs. 
 
-FR: FR4, FR5, FR10 
+FR: FR4, FR5, FR7, FR10 
 
 Priority: Could
 
@@ -43,7 +43,7 @@ MVP: no
 ## US4: Filter preferences
 As a student, I want to select filters when searching for a new room so that the new room matches the study room preferences I have. 
 
-FR: FR5, FR10 
+FR: FR7, FR10 
 
 Priority: Should
 
@@ -55,7 +55,7 @@ MVP: yes
 ## US5: View booking details
 As a student, I want to see the room and time of my booking so that I can determine if I need to edit the booking based on my availability and space needs. 
 
-FR: FR2, FR5 
+FR: FR2, FR7
 
 Priority: Must 
 

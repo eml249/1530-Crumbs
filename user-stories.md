@@ -3,7 +3,7 @@ Students can change and cancel the study rooms they have booked.
 
 ## US1: Cancel a booking
 As a student, I want to cancel a study room reservation so that it is freed up for other students when I no longer need it.
-FR: FR5, FR7, FR11, FR12 
+FR FR5 FR7 FR11 FR12 
 Priority: Must 
 MVP: yes 
 

@@ -9,7 +9,6 @@ MVP: yes
 
 - [ ] The student can select to cancel their current reserved room, marking it as open to book for other students.
 - [ ] After a booking has just been canceled by one student; another student can reserve that same room at the same time.
-- [ ] If a student is at the top of a waitlist for the room and time a booking is being canceled, they automatically claim the reservation. 
 
 ## US2: Edit booking time
 As a student, I want to change the time of my study room booking so that I have it reserved for a time that better suits my availability. 

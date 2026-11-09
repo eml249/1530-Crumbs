@@ -1,0 +1,1 @@
+let buildings = ['Alumni Hall', 'Barco Law Building', 'Bellefield Hall', 'Biomedical Tower', 'Benedum Hall', 'Cathederal of Learning','Hillman Libary', 'Lawrence Hall', 'Music Building', 'Ohara Student Center','Sennott Square','Space Research Coordination Center','William Pitt Union'];

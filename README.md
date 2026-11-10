@@ -13,3 +13,5 @@ Finding open study spaces around the Pitt campus whether that be an open space o
 
 Implementation:
 We are planning on developing our system in the JavaScript environment Bun. One thing that we are not sure about is how we could get information on building congestion, whether that be from the university or gathering information ourselves.
+
+Disclaimer: Generative AI was used as a code assistant while developing our systems.

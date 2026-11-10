@@ -1,0 +1,13 @@
+.fc-group { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+.fc-label { font-size: 13px; color: #666; min-width: 44px; }
+.fc-chip {
+  border: 1px solid #ccd; background: #fff; color: inherit;
+  padding: 6px 12px; border-radius: 999px; cursor: pointer; font-size: 14px;
+}
+.fc-chip:hover { background: #f1f3ff; }
+.fc-chip.active { background: #003594; border-color: #003594; color: #fff; }
+.fc-count {
+  display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08); font-size: 12px;
+}
+.fc-chip.active .fc-count { background: rgba(255, 255, 255, 0.25); }

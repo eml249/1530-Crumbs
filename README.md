@@ -8,19 +8,18 @@ Team Members:
 - Jack Carfrey (jac961@pitt.edu)
 - Thanh Mai (btm100@pitt.edu) 
 
-
 ## Tech stack
 
 | Layer | Technology | Why we're using it |
 | --- | --- | --- |
-| Languages | JavaScript,  HTML/CSS, SQL | We all know Java, HTML, CSS, and JavaScript are basically required for frontend, and some members have experience in it, SQL to manage the database, and we all want to learn it. |
-| Frontend | React.js | Some team members have experience, and it has good documentation and easy to deploy. |
-| Backend | Node.js | We have people who have used it and want to learn it. |
-| Database | MongoDB Atlas | Learned about this program in class, some members are willing to learn it for the project. |
+| Languages | JavaScript,  HTML/CSS, SQL | HTML and CSS are basically required for frontend development, and some members have experience in it, JavaScript allows us to limit the amount of languages we are using by implementing Node.js. |
+| Frontend | React.js | Some team members have experience, and it has good documentation and is easy to deploy. It also has good performance and should easily be able to match the 5 second response time requested in the Sprint 3 design goal. |
+| Backend | Node.js | We have people who have used it and want to learn it. It also allows us to focus on just JavaScript for the front and back end instead of having to switch to another language like python or java. |
+| Database | MongoDB | Learned about this program in class, some members are willing to learn it for the project. It also meets our security requirements from the sprint 3 design goals, with good authentication and security customization allowing for different accounts with different access levels that can be created and maintained.  |
 | External Services (planned) | Pitt EMS API or Pitt API if we can get permission. | They have data that would be useful to us. |
 | Deployment / Hosting (planned) | BunX (team's proposed option) | Easy way to host a website, Jared learned it during steelhacks this year. This may be implemented later as we do not need it at the moment. |
 
-The current code does not use BunX or SQL, but may be implemented in the future. 
+The current code does not use BunX, but may be implemented in the future. 
 
 ## Architecture 
 ### Subsystem Decomposition

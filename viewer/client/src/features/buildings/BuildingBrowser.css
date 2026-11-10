@@ -1,0 +1,33 @@
+.bb {
+  max-width: 960px;
+  margin: 40px auto;
+  padding: 0 20px;
+  font-family: system-ui, sans-serif;
+  color: #1f2430;
+  text-align: left;
+}
+.bb-header h1 { margin: 0 0 4px; }
+.bb-sub { margin: 0 0 20px; color: #666; font-size: 14px; }
+
+.bb-grid {
+  list-style: none; padding: 0; margin: 12px 0 0;
+  display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+.bb-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 14px; }
+.bb-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.bb-card h2 { font-size: 17px; margin: 0; }
+.bb-badge {
+  flex-shrink: 0; font-size: 12px; padding: 2px 8px; border-radius: 999px;
+  background: #e8eaf0; color: #333;
+}
+.type-academic { background: #dbe7ff; }
+.type-dining { background: #ffe9cc; }
+.type-residence-hall { background: #e1f5e1; }
+.type-library { background: #eadcff; }
+.type-administrative { background: #ffdede; }
+.type-recreational { background: #d6f3f3; }
+
+.bb-card dl { margin: 12px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 14px; }
+.bb-card dt { color: #777; }
+.bb-card dd { margin: 0; word-break: break-word; }
+.bb-id { font-family: ui-monospace, monospace; font-size: 11px; color: #888; }

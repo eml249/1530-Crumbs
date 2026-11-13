@@ -50,8 +50,8 @@ cp server/.env.example server/.env
 ```
 The copied file should contain the following:
 ```dotenv
-# create a new file called ".env" with the given password filled in in place of the <password> and the comments removed
-READ_MONGODB_URI="mongodb+srv://readUser:<password>@crumbs1530.9q4u14v.mongodb.net/test?retryWrites=true&w=majority"
+# create a new file called ".env" with the given information and the comments removed (this is a dummy account that will be removed later)
+READ_MONGODB_URI="mongodb+srv://readUser:xEWD4vRoNpuatDUe@crumbs1530.9q4u14v.mongodb.net/test?retryWrites=true&w=majority"
 PORT=5001
 ```
 The `<password>` segment should be filled in with the given password provided by the group. 

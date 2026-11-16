@@ -50,11 +50,11 @@ cp server/.env.example server/.env
 ```
 The copied file should contain the following:
 ```dotenv
-# create a new file called ".env" with the given password filled in in place of the <password> and the comments removed
+# create a new file called ".env" with the password xEWD4vRoNpuatDUe filled in in place of the <password> and the comments removed
 READ_MONGODB_URI="mongodb+srv://readUser:<password>@crumbs1530.9q4u14v.mongodb.net/test?retryWrites=true&w=majority"
 PORT=5001
 ```
-The `<password>` segment should be filled in with the given password provided by the group. 
+The `<password>` segment should be filled in with the given password provided by the group. (The currently provided password is for a dummy account that will be removed later)
 ### 3. Install Dependencies 
 While still inside `viewer/`, run: 
 ```bash 

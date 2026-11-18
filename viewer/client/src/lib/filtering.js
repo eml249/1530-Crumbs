@@ -1,5 +1,5 @@
-// Generic, data-agnostic filtering helpers. Buildings use them today; rooms
-// (US4, US10) can reuse them by supplying their own filter definitions.
+// Generic, data-agnostic filtering helpers. The Buildings, Rooms and Rooms by
+// Building pages all use them by supplying their own filter definitions.
 //
 // A filter definition looks like:
 //   { key: 'classification', label: 'Type', getValue: (item) => item.classification || 'Other' }

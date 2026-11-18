@@ -40,20 +40,45 @@ viewer/
   scripts/dev.js            one-terminal launcher (no dependencies)
   server/src/
     app.js                  Express app: GET-only guard, mounts /api
-    index.js                loads .env, connects, listens
+    index.js                loads .env, connects, checks both collections have data, listens
     config/db.js            connects with READ_MONGODB_URI only (no fallback to the write user)
-    models/Building.js      read-side copy of the schema (strict: false, so new fields still show)
+    models/Building.js      read-side copy of the buildings schema (strict: false)
+    models/Room.js          read-side copy of the rooms schema (strict: false)
     routes/buildings.js     GET /api/buildings[?classification=], /api/filters, /api/summary
+    routes/rooms.js         GET /api/rooms[?inBuilding=&available=&congestionIndex=&dataSource=],
+                            /api/rooms/filters, /api/rooms/summary, /api/buildings/:id/rooms
+    routes/assignments.js   GET /api/assignments  (every building with its rooms + unmatched rooms)
   client/src/
     routes.jsx              PAGE REGISTRY: add one entry per new page
     features/buildings/     Buildings page: cards + type filter
-    features/database/      Database page: sortable table / raw JSON
-    components/             FilterBar, FilterChips, StatusMessage, NavBar
+    features/rooms/         Rooms page: all rooms, filter by building/status/congestion/source
+    features/assignments/   Rooms by Building page: each building with the rooms assigned to it
+    features/database/      Database page: sortable table / raw JSON, for buildings OR rooms
+    components/             FilterBar, FilterChips, StatusMessage, Badges, NavBar
     hooks/useApiGet.js      shared GET hook
     lib/filtering.js        generic applyFilters / countBy
+    lib/congestion.js       congestionIndex 1/2/3 -> Low / Moderate / High
     services/api.js         axios instance (Vite proxies /api to port 5001)
 ```
 
-The filter chips come from the values that exist in the database (`/api/filters`), so there
-is no hard-coded type list to keep in sync with the main app's schema.
+## Pages
 
+| Page | URL | What it shows |
+|---|---|---|
+| Buildings | `/` | Building cards, filtered by type |
+| Rooms | `/rooms` | Every room on its own. Filter by building (dropdown), status, congestion and data source; search; sort. `?building=Hillman%20Library` pre-selects a building |
+| Rooms by Building | `/by-building` | Every building as an expandable section listing the rooms assigned to it (count, available, total seats). Rooms whose `inBuilding` matches no building are listed at the bottom so typos are visible. `?building=` shows just one building |
+| Database | `/database` | Raw table / JSON for the `buildings` **or** `rooms` collection (switch at the top) |
+
+## How rooms and buildings relate
+
+Both collections live in the same database, `test`: `test/buildings` and `test/rooms`.
+A room belongs to a building **by name**: `room.inBuilding` must exactly equal
+`building.buildName`. There is no ObjectId reference, so renaming a building without updating
+its rooms leaves those rooms "unassigned" (the Rooms by Building page flags them).
+
+`congestionIndex` is `1` (low), `2` (moderate) or `3` (high). `dataSource` marks whether a room
+came from a Pitt source or is placeholder data.
+
+The filter chips come from the values that exist in the database (`/api/filters`,
+`/api/rooms/filters`), so there is no hard-coded type list to keep in sync with the main app's schema.

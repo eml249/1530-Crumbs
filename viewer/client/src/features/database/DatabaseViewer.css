@@ -37,3 +37,7 @@
   background: #12141c; color: #d6e2ff; padding: 16px; border-radius: 8px;
   overflow: auto; max-height: 70vh; font-size: 13px; line-height: 1.45;
 }
+
+.dbv-collections { margin-top: 8px; }
+.dbv-count { margin-bottom: 10px; }
+.dbv-bar { margin-bottom: 14px; }

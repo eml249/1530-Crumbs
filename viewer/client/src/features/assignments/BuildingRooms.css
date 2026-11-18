@@ -1,0 +1,51 @@
+.br {
+  max-width: 1100px;
+  margin: 40px auto;
+  padding: 0 20px;
+  font-family: system-ui, sans-serif;
+  color: #1f2430;
+  text-align: left;
+}
+.br-header h1 { margin: 0 0 4px; }
+.br-sub { margin: 0 0 20px; color: #666; font-size: 14px; }
+.br-only { background: #eef1fb; border-radius: 6px; padding: 8px 12px; font-size: 14px; }
+.br-only button { margin-left: 8px; }
+
+.br-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 4px 0 16px; }
+.br-controls input[type='search'] { font: inherit; font-size: 14px; padding: 6px 10px; border: 1px solid #ccd; border-radius: 6px; min-width: 240px; background: #fff; color: inherit; }
+.br-controls button, .br-only button {
+  font: inherit; font-size: 14px; padding: 6px 12px; border: 1px solid #ccd; border-radius: 6px; background: #fff; color: inherit; cursor: pointer;
+}
+.br-controls button:hover, .br-only button:hover { background: #f1f3ff; }
+.br-check { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+.br-spacer { flex: 1; }
+
+.br-list { display: flex; flex-direction: column; gap: 8px; }
+.br-building { background: #fff; border: 1px solid #ddd; border-radius: 8px; }
+.br-building summary {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  padding: 12px 14px; cursor: pointer; list-style-position: inside;
+}
+.br-building summary:hover { background: #fafbff; }
+.br-name { font-weight: 600; font-size: 16px; }
+.br-type { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #e8eaf0; color: #333; }
+.type-academic { background: #dbe7ff; }
+.type-dining { background: #ffe9cc; }
+.type-residence-hall { background: #e1f5e1; }
+.type-library { background: #eadcff; }
+.type-administrative { background: #ffdede; }
+.type-recreational { background: #d6f3f3; }
+.br-counts { margin-left: auto; font-size: 13px; color: #666; }
+.br-body { padding: 0 14px 14px; border-top: 1px solid #eee; }
+.br-address { margin: 10px 0; font-size: 14px; color: #555; }
+.br-address a { color: #003594; }
+.br-muted { color: #888; font-size: 13px; }
+
+.br-scroll { overflow-x: auto; border: 1px solid #eee; border-radius: 8px; }
+.br-table { width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; }
+.br-table th, .br-table td { padding: 8px 12px; border-bottom: 1px solid #eee; text-align: left; white-space: nowrap; }
+.br-table th { background: #f6f7fb; font-weight: 600; }
+.br-table tbody tr:last-child td { border-bottom: 0; }
+
+.br-unassigned { margin-top: 28px; padding-top: 12px; border-top: 2px solid #f0c36d; }
+.br-unassigned h2 { font-size: 17px; margin: 0 0 4px; }

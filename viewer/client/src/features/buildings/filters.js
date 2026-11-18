@@ -1,5 +1,5 @@
 // Filters available on the Buildings page. Each entry becomes a row of chips.
-// Future filters (e.g. capacity, room style, availability) are added here.
+// Room filters live in features/rooms/filters.js.
 export const buildingFilters = [
   {
     key: 'classification',

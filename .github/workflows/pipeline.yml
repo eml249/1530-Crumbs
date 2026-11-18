@@ -26,11 +26,13 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Configure environment and run build checks
+      - name: Install dependencies and verify build
         run: |
           cd viewer
           cp server/.env.example server/.env
           sed -i 's/<password>/xEWD4vRoNpuatDUe/g' server/.env
+          
+          # Installs root, client, and server dependencies
           npm run setup
                 
           # Build the React/Vite frontend (adjust 'client' if your folder is named 'frontend')

@@ -40,3 +40,8 @@ jobs:
 
           # Syntax-check all server JS files
           find server/src -name "*.js" -exec node --check {} +
+
+      - name: Run database unit tests
+        run: |
+          cd viewer
+          npm --prefix server test

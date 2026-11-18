@@ -1,7 +1,11 @@
-name: Portfolio Pipeline
+name: Build Check Pipeline
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
 
 permissions:
   contents: write
@@ -12,54 +16,27 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Run dev setup
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: viewer/package-lock.json # Adjust if your lockfile is elsewhere
+
+      - name: Configure environment and run build checks
         run: |
           cd viewer
           cp server/.env.example server/.env
           sed -i 's/<password>/xEWD4vRoNpuatDUe/g' server/.env
-          npm run setup
-          npm run dev
-
-  # lint:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v6
-  #     - name: Install HTMLHint
-  #       run: npm install -g htmlhint
-  #     - name: Lint HTML
-  #       run: htmlhint index.html
-
-  # validate:
-  #   needs: lint
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v6
-  #     - uses: actions/setup-python@v6
-  #       with:
-  #         python-version: "3.x"
-  #     - name: Validate portfolio structure
-  #       run: python3 scripts/validate.py
-
-  # deploy:
-  #   needs: validate
-  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     contents: read
-  #     pages: write
-  #     id-token: write
-  #   environment:
-  #     name: github-pages
-  #     url: ${{ steps.deployment.outputs.page_url }}
-  #   steps:
-  #     - uses: actions/checkout@v6
-  #     - name: Setup Pages
-  #       uses: actions/configure-pages@v6
-  #     - name: Upload artifact
-  #       uses: actions/upload-pages-artifact@v4
-  #       with:
-  #         path: "."
-  #     - name: Deploy to GitHub Pages
-  #       id: deployment
-  #       uses: actions/deploy-pages@v5
+          
+          # Install dependencies cleanly using ci instead of install
+          npm ci
+          
+          # Run your build/test scripts here instead of 'npm run dev'
+          npm run build
+          # npm test  # Uncomment if you have test scripts configured

@@ -13,13 +13,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      name: Run dev setup
-      run: |
-        cd viewer
-        cp server/.env.example server/.env
-        sed -i 's/<password>/xEWD4vRoNpuatDUe/g' server/.env
-        npm run setup
-        npm run dev
+      - name: Run dev setup
+        run: |
+          cd viewer
+          cp server/.env.example server/.env
+          sed -i 's/<password>/xEWD4vRoNpuatDUe/g' server/.env
+          npm run setup
+          npm run dev
 
   # lint:
   #   runs-on: ubuntu-latest

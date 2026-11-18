@@ -17,5 +17,7 @@ app.use('/api/rooms', roomsRouter);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use('/api', buildingsRouter);
+app.use('/api', roomsRouter);
+app.use('/api', assignmentsRouter);
 
 module.exports = app;

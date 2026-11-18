@@ -1,0 +1,7 @@
+.badge { display: inline-block; flex-shrink: 0; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #e8eaf0; color: #333; white-space: nowrap; }
+.badge-ok { background: #d9f2dd; color: #14532d; }
+.badge-off { background: #f0f0f0; color: #666; }
+.badge-cong-1 { background: #d9f2dd; color: #14532d; }
+.badge-cong-2 { background: #fff0c2; color: #6b4e00; }
+.badge-cong-3 { background: #ffd9d9; color: #7a1212; }
+.badge-cong-unknown { background: #e8eaf0; color: #555; }

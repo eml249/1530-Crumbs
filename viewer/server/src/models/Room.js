@@ -1,23 +1,38 @@
 const mongoose = require('mongoose');
 
-// Read-side description of the `rooms` collection (test/rooms), which sits next
-// to `buildings` in the same database. Like the Building copy, this is only
-// used for reading: no `required`/`enum` rules, and `strict: false` so fields
-// the main app adds later still come through to the viewer.
-//
-// A room belongs to a building by NAME: room.inBuilding === building.buildName.
-const roomSchema = new mongoose.Schema(
-  {
-    roomName: String,
-    inBuilding: String,
-    roomNum: Number,
-    capacity: Number,
-    available: Boolean,
-    congestionIndex: Number,
-    dataSource: String,
-    createdAt: Date,
+const roomSchema = new mongoose.Schema({
+  roomName: {
+    type: String,
+    required: true,
+    trim: true
   },
-  { strict: false, collection: 'rooms' },
-);
+  inBuilding: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  roomNum: {
+    type: Number,
+    required: true
+  },
+  capacity: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  available: {
+    type: Boolean,
+    required: true,
+    default: true
+  },
+  congestionIndex: {
+    type: Number,
+    required: true,
+    default: 0,
+    min: 0
+  }
+}, {
+  timestamps: true // Adds createdAt and updatedAt fields automatically
+});
 
 module.exports = mongoose.model('Room', roomSchema);

@@ -5,13 +5,13 @@ its own server, its own client, its own `package.json` files, and it does not im
 or modify the top-level `client/` and `server/` folders. Those stay free for **building and
 modifying** the database (adding buildings, bookings, etc.).
 
-|  | Main app (existing) | Viewer (this folder) |
+|  | Database App (base server/client) | Viewer (this folder) |
 |---|---|---|
 | Purpose | create / modify data | view / filter data |
 | Server | `server/`, port 5000 | `viewer/server`, port 5001 |
 | Client | `client/`, port 5173 | `viewer/client`, port 5174 |
 | DB user | writes (`MONGODB_URI`) | `readUser` only (`READ_MONGODB_URI`) |
-| Can write? | yes | no: the server rejects every non-GET request, and the DB user can't write either |
+| Can write? | yes | no |
 
 Both can run at the same time.
 

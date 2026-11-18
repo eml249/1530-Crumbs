@@ -1,0 +1,42 @@
+name: Build Check Pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies and verify build
+        run: |
+          cd viewer
+          cp server/.env.example server/.env
+          sed -i 's/<password>/xEWD4vRoNpuatDUe/g' server/.env
+
+          # Installs root, client, and server dependencies
+          npm run setup
+
+          # Build the React/Vite frontend
+          npm --prefix client run build
+
+          # Syntax-check all server JS files
+          find server/src -name "*.js" -exec node --check {} +

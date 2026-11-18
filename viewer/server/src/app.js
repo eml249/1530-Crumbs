@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const buildingsRouter = require('./routes/buildings');
 const roomsRouter = require('./routes/rooms');
-const assignmentsRouter = require('./routes/assignments');
 
 const app = express();
 app.use(cors());
@@ -14,6 +13,7 @@ app.use((req, res, next) => {
   }
   next();
 });
+app.use('/api/rooms', roomsRouter);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use('/api', buildingsRouter);

@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const buildingsRouter = require('./routes/buildings');
+const assignmentsRouter = require('./routes/assignments');
 const roomsRouter = require('./routes/rooms');
 
 const app = express();

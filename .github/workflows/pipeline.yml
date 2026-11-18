@@ -1,25 +1,25 @@
 name: Portfolio Pipeline
 
 on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
-  runs-on: ubuntu-latest
-  steps:
-    name: Run dev setup
-    run: |
-      cd viewer
-      cp server/.env.example server/.env
-      sed -i 's/<password>/xEWD4vRoNpuatDUe/g' server/.env
-      npm run setup
-      npm run dev
+    runs-on: ubuntu-latest
+    steps:
+      name: Run dev setup
+      run: |
+        cd viewer
+        cp server/.env.example server/.env
+        sed -i 's/<password>/xEWD4vRoNpuatDUe/g' server/.env
+        npm run setup
+        npm run dev
 
   # lint:
   #   runs-on: ubuntu-latest

@@ -10,7 +10,7 @@ describe('Database & Read-Only API Integration', () => {
   let baseUrl;
 
   it('should connect to MongoDB successfully', async () => {
-    // const uri = process.env.READ_MONGODB_URI;
+    const uri = process.env.READ_MONGODB_URI;
     assert.ok(uri, 'Database URI is missing from server/.env');
 
     await mongoose.connect(uri);

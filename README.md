@@ -68,7 +68,7 @@ npm run dev
 ```
 This starts both the viewer backend and frontend simultaneously, and usually runs on **http://localhost:5174** in a web browser. The backend should be running on **port 5001.** The terminal must remain open while using the viewer, and can be terminated using **Ctrl+C**. 
 ### 5. Confirm It's Running 
-Open **http://localhost:5174** and ensure you see the Buildings page. You may browse the building and filter them. 
+Open **http://localhost:5174** and ensure you see the Buildings page. You may browse the buildings and rooms and filter them. 
 
 ## Acknowledgements 
 Generative AI was used as a code assistant while developing our systems.

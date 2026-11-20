@@ -75,6 +75,7 @@ Open **http://localhost:5174** and ensure you see the Buildings page. You may br
  - View buildings with study spaces on the Pitt campus and filter them by classification (e.g. Dorm Hall, Academic Building)
  - View available rooms in the previously mentioned buildings, and sort by capacity and congestion (Currently a mix of placeholder and non placeholder sources, noted in each entry)
  - View database JSON files
+ - Allow for accounts with associated bookings in specific rooms at specific times
 
 ## Acknowledgements 
 Generative AI was used as a code assistant while developing our systems.

@@ -1,0 +1,43 @@
+.si { max-width: 420px; margin: 48px auto; padding: 0 20px; font-family: system-ui, sans-serif; color: #1f2430; }
+.si-panel { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 28px 28px 24px; }
+.si h1 { margin: 0 0 4px; font-size: 26px; }
+.si-sub { margin: 0 0 18px; color: #555; font-size: 15px; }
+
+.si-mock {
+  margin: 0 0 20px; padding: 10px 12px; font-size: 14px; line-height: 1.45;
+  background: #fff6db; border-left: 4px solid #ffb81c; border-radius: 4px; color: #4a3b00;
+}
+
+.si-form { display: flex; flex-direction: column; gap: 14px; }
+.si-form label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; }
+.si-form input {
+  font: inherit; font-weight: 400; font-size: 16px; color: #1f2430;
+  padding: 9px 11px; border: 1px solid #b9bfcc; border-radius: 6px; background: #fff;
+}
+.si-form input:focus-visible { outline: 3px solid #8fb0ff; outline-offset: 1px; border-color: #003594; }
+.si-error { margin: 0; color: #b00020; font-size: 14px; }
+
+.si-submit {
+  font: inherit; font-size: 16px; font-weight: 600; padding: 10px; margin-top: 4px;
+  border: none; border-radius: 6px; background: #003594; color: #fff; cursor: pointer;
+}
+.si-submit:hover:not(:disabled) { background: #00297a; }
+.si-submit:disabled { background: #9aa6c2; cursor: not-allowed; }
+.si-submit:focus-visible { outline: 3px solid #8fb0ff; outline-offset: 2px; }
+
+.si-demo { margin-top: 24px; padding-top: 18px; border-top: 1px solid #e5e7ee; font-size: 14px; }
+.si-demo h2 { margin: 0 0 4px; font-size: 15px; }
+.si-demo p { margin: 0 0 10px; color: #555; }
+.si-demo code { background: #eef1fb; padding: 1px 6px; border-radius: 4px; color: #1f2430; }
+.si-demo ul { list-style: none; margin: 0; padding: 0; }
+.si-demo li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 0; }
+.si-demo li strong { font-variant-numeric: tabular-nums; margin-right: 6px; }
+.si-demo-count { display: block; color: #777; font-size: 13px; }
+.si-demo button {
+  font: inherit; font-size: 13px; padding: 4px 12px; border: 1px solid #003594; border-radius: 999px;
+  background: #fff; color: #003594; cursor: pointer;
+}
+.si-demo button:hover { background: #eef1fb; }
+.si-demo button:focus-visible { outline: 3px solid #8fb0ff; outline-offset: 1px; }
+
+.auth-wait { max-width: 960px; margin: 40px auto; padding: 0 20px; font-family: system-ui, sans-serif; }

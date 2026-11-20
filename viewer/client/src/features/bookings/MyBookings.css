@@ -1,0 +1,47 @@
+.bk { max-width: 860px; margin: 40px auto; padding: 0 20px; font-family: system-ui, sans-serif; color: #1f2430; text-align: left; }
+.bk-header h1 { margin: 0 0 4px; }
+.bk-sub { margin: 0 0 24px; color: #666; font-size: 14px; }
+
+.bk h2 { font-size: 19px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+.bk-count {
+  display: inline-block; min-width: 1.6em; padding: 1px 7px; border-radius: 999px; text-align: center;
+  background: #e8eaf0; color: #333; font-size: 13px; font-weight: 600;
+}
+
+.bk-day { margin-bottom: 20px; }
+.bk-day h3 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
+.bk-date { font-weight: 400; color: #666; margin-left: 4px; }
+
+/* One panel per day; rows inside it are divided, not separate cards. */
+.bk-list { list-style: none; margin: 0; padding: 0; background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+.bk-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 18px; padding: 16px 18px; border-left: 4px solid transparent; }
+.bk-row + .bk-row { border-top: 1px solid #ececf2; }
+.bk-row-live { border-left-color: #ffb81c; background: #fffcf2; }
+
+.bk-when { display: flex; flex-direction: column; gap: 2px; }
+.bk-time { font-size: 20px; font-weight: 700; color: #003594; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.bk-duration { font-size: 13px; color: #666; }
+.bk-live { margin-top: 6px; align-self: flex-start; font-size: 12px; font-weight: 700; color: #6b4e00; background: #ffe7a8; padding: 2px 8px; border-radius: 999px; }
+
+.bk-where { min-width: 0; }
+.bk-room { margin: 0 0 2px; font-size: 16px; }
+.bk-place { margin: 0 0 4px; font-size: 14px; }
+.bk-place a { color: #003594; }
+.bk-detail { margin: 0; font-size: 13px; color: #666; }
+.bk-tag { display: inline-block; margin-top: 8px; font-size: 12px; color: #555; background: #f0f0f0; padding: 1px 8px; border-radius: 999px; }
+
+.bk-empty, .bk-none { color: #555; }
+.bk-empty { background: #fff; border: 1px dashed #c7cde0; border-radius: 8px; padding: 24px; text-align: center; }
+.bk-empty p { margin: 0 0 8px; font-size: 16px; }
+.bk-empty a, .bk-none a { color: #003594; font-weight: 600; }
+
+.bk-past { margin-top: 28px; }
+.bk-past summary { cursor: pointer; font-size: 17px; font-weight: 700; margin-bottom: 12px; }
+.bk-past summary .bk-count { margin-left: 6px; vertical-align: 1px; }
+.bk-past .bk-time { color: #555; }
+
+.bk a:focus-visible, .bk-past summary:focus-visible { outline: 3px solid #8fb0ff; outline-offset: 2px; border-radius: 3px; }
+
+@media (max-width: 600px) {
+  .bk-row { grid-template-columns: 1fr; gap: 8px; }
+}

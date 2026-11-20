@@ -1,0 +1,1607 @@
+git diff --git a/viewer/README.md b/viewer/README.md
+index 0ec488f..5edafa8 100644
+--- a/viewer/README.md
++++ b/viewer/README.md
+@@ -39,21 +39,30 @@ viewer/
+   package.json              `setup`, `dev`, `dev:all` scripts
+   scripts/dev.js            one-terminal launcher (no dependencies)
+   server/src/
+-    app.js                  Express app: GET-only guard, mounts /api
++    app.js                  Express app: GET-only guard (sign-in/out excepted), mounts /api
+     index.js                loads .env, connects, checks both collections have data, listens
+     config/db.js            connects with READ_MONGODB_URI only (no fallback to the write user)
+     models/Building.js      read-side copy of the buildings schema (strict: false)
+     models/Room.js          read-side copy of the rooms schema (strict: false)
++    models/Booking.js       read-side description of the bookings collection (the shape to write)
++    auth/provider.js        THE swap point for Pitt SSO: checks credentials (mock today)
++    auth/mockUsers.js       demo Pitt accounts and their demo bookings
++    auth/session.js         signed session cookie + requireAuth middleware
++    bookings/               mock booking generator, booking -> room/building lookup
+     routes/buildings.js     GET /api/buildings[?classification=], /api/filters, /api/summary
+     routes/rooms.js         GET /api/rooms[?inBuilding=&available=&congestionIndex=&dataSource=],
+                             /api/rooms/filters, /api/rooms/summary, /api/buildings/:id/rooms
+     routes/assignments.js   GET /api/assignments  (every building with its rooms + unmatched rooms)
++    routes/auth.js          POST /api/auth/login, /api/auth/logout; GET /api/auth/me, /api/auth/provider
++    routes/bookings.js      GET /api/bookings  (signed-in student's bookings, with room and building)
+   client/src/
+     routes.jsx              PAGE REGISTRY: add one entry per new page
+     features/buildings/     Buildings page: cards + type filter
+     features/rooms/         Rooms page: all rooms, filter by building/status/congestion/source
+     features/assignments/   Rooms by Building page: each building with the rooms assigned to it
+     features/database/      Database page: sortable table / raw JSON, for buildings OR rooms
++    features/auth/          sign-in page, AuthProvider/useAuth, RequireAuth, nav sign-in status
++    features/bookings/      My Bookings page: the signed-in student's bookings, by day
+     components/             FilterBar, FilterChips, StatusMessage, Badges, NavBar
+     hooks/useApiGet.js      shared GET hook
+     lib/filtering.js        generic applyFilters / countBy
+@@ -69,6 +78,8 @@ viewer/
+ | Rooms | `/rooms` | Every room on its own. Filter by building (dropdown), status, congestion and data source; search; sort. `?building=Hillman%20Library` pre-selects a building |
+ | Rooms by Building | `/by-building` | Every building as an expandable section listing the rooms assigned to it (count, available, total seats). Rooms whose `inBuilding` matches no building are listed at the bottom so typos are visible. `?building=` shows just one building |
+ | Database | `/database` | Raw table / JSON for the `buildings` **or** `rooms` collection (switch at the top) |
++| My Bookings | `/bookings` | **Sign-in only.** The signed-in student's bookings, grouped by day: time, duration, room name and number, building (links to Rooms by Building), address, seats. Upcoming first (in-progress ones highlighted), past bookings folded away below |
++| Sign in | `/sign-in` | Mock Pitt sign-in (not in the nav; signed-out visits to My Bookings land here and return afterwards) |
+ 
+ ## How rooms and buildings relate
+ 
+@@ -82,3 +93,51 @@ came from a Pitt source or is placeholder data.
+ 
+ The filter chips come from the values that exist in the database (`/api/filters`,
+ `/api/rooms/filters`), so there is no hard-coded type list to keep in sync with the main app's schema.
++
++## Signing in (mock Pitt SSO)
++
++The project doesn't have access to Pitt SSO yet, so sign-in is a **mock**: the server only
++accepts the demo accounts in `server/src/auth/mockUsers.js`, and the sign-in page lists them.
++Every demo account uses the password `password`.
++
++| Username | Name | Demo bookings |
++|---|---|---|
++| `abc123` | Alex Carter | 4: one in progress now, two upcoming, one past |
++| `def456` | Dana Fischer | 1 |
++| `ghi789` | Gabe Ito | none (shows the empty state) |
++
++Usernames can also be typed as `abc123@pitt.edu` or in capitals. Never type a real Pitt password
++into the mock.
++
++A successful sign-in sets an httpOnly cookie (`seatsaver_session`) holding a signed token, valid
++for 8 hours. It is signed with `SESSION_SECRET` from `server/.env`; if that is empty a random
++secret is made at start-up, which signs everyone out whenever the server restarts.
++
++**Swapping in Pitt SSO** only means changing `server/src/auth/provider.js` (plus a callback
++route). Pitt's sign-in page checks the password, so the mock password check goes away; whatever
++reads Pitt's response just calls `setSessionCookie(res, { username, name, email })` like
++`routes/auth.js` does now. The cookie, `/api/auth/me`, `/api/bookings`, `RequireAuth` and the
++My Bookings page stay as they are.
++
++## Bookings
++
++`GET /api/bookings` returns only the signed-in student's bookings; there is no way to ask for
++someone else's. It reads the `bookings` collection, which the main app will write once booking
++exists (US1-US3). Please store bookings in this shape (documented in `server/src/models/Booking.js`):
++
++| Field | Meaning |
++|---|---|
++| `user` | Pitt username of the student, e.g. `abc123` (what SSO will give us) |
++| `room` | ObjectId of the booked document in `rooms` |
++| `start`, `end` | Dates |
++| `status` | `active` (default) or `cancelled`; cancelled bookings are not shown |
++
++A booking points at its room by **ObjectId** (room names repeat across buildings), and the room
++points at its building by name as before. A booking whose room was deleted still shows, marked
++"Room not found".
++
++Until then, the demo accounts also get **demo bookings** built from the real `rooms` collection
++(marked `dataSource: "mock"` and shown with a "Demo booking" tag). The times are relative to today,
++so the demo never goes stale. Real bookings for a demo username show up alongside them.
++
++`BookingRow` has a `children` slot at the end of each row for the Edit / Cancel buttons.
+diff --git a/viewer/client/src/components/NavBar.css b/viewer/client/src/components/NavBar.css
+index f947b36..a6fa9b2 100644
+--- a/viewer/client/src/components/NavBar.css
++++ b/viewer/client/src/components/NavBar.css
+@@ -1,4 +1,4 @@
+-.nav { display: flex; gap: 4px; max-width: 1100px; margin: 20px auto 0; padding: 0 20px; font-family: system-ui, sans-serif; }
++.nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; max-width: 1100px; margin: 20px auto 0; padding: 0 20px; font-family: system-ui, sans-serif; }
+ .nav a { padding: 6px 14px; border-radius: 6px; color: #003594; text-decoration: none; font-size: 15px; }
+ .nav a:hover { background: #eef1fb; }
+ .nav a.active { background: #003594; color: #fff; }
+diff --git a/viewer/client/src/components/NavBar.jsx b/viewer/client/src/components/NavBar.jsx
+index 99f3226..9581a54 100644
+--- a/viewer/client/src/components/NavBar.jsx
++++ b/viewer/client/src/components/NavBar.jsx
+@@ -1,15 +1,19 @@
+ import { NavLink } from 'react-router-dom';
+ import { pages } from '../routes';
++import AccountStatus from '../features/auth/AccountStatus';
+ import './NavBar.css';
+ 
+ export default function NavBar() {
+   return (
+     <nav className="nav">
+-      {pages.map((p) => (
+-        <NavLink key={p.path} to={p.path} end={p.path === '/'}>
+-          {p.label}
+-        </NavLink>
+-      ))}
++      {pages
++        .filter((p) => !p.hideInNav)
++        .map((p) => (
++          <NavLink key={p.path} to={p.path} end={p.path === '/'}>
++            {p.label}
++          </NavLink>
++        ))}
++      <AccountStatus />
+     </nav>
+   );
+ }
+\ No newline at end of file
+diff --git a/viewer/client/src/features/auth/AccountStatus.css b/viewer/client/src/features/auth/AccountStatus.css
+new file mode 100644
+index 0000000..fdc8b7d
+--- /dev/null
++++ b/viewer/client/src/features/auth/AccountStatus.css
+@@ -0,0 +1,8 @@
++.acct { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 14px; white-space: nowrap; }
++.acct-user { color: #444; }
++.acct-signout {
++  font: inherit; font-size: 14px; padding: 5px 12px; border: 1px solid #c7cde0; border-radius: 6px;
++  background: #fff; color: #003594; cursor: pointer;
++}
++.acct-signout:hover { background: #eef1fb; }
++.acct-signout:focus-visible { outline: 3px solid #8fb0ff; outline-offset: 1px; }
+diff --git a/viewer/client/src/features/auth/AccountStatus.jsx b/viewer/client/src/features/auth/AccountStatus.jsx
+new file mode 100644
+index 0000000..b538459
+--- /dev/null
++++ b/viewer/client/src/features/auth/AccountStatus.jsx
+@@ -0,0 +1,26 @@
++import { NavLink } from 'react-router-dom';
++import { useAuth } from './AuthContext';
++import './AccountStatus.css';
++
++// Right-hand end of the nav bar: who is signed in, with a sign-out button.
++export default function AccountStatus() {
++  const { user, loading, signOut } = useAuth();
++  if (loading) return null;
++
++  return (
++    <div className="acct">
++      {user ? (
++        <>
++          <span className="acct-user" title={user.email}>
++            {user.name}
++          </span>
++          <button type="button" className="acct-signout" onClick={signOut}>
++            Sign out
++          </button>
++        </>
++      ) : (
++        <NavLink to="/sign-in">Sign in</NavLink>
++      )}
++    </div>
++  );
++}
+diff --git a/viewer/client/src/features/auth/AuthContext.js b/viewer/client/src/features/auth/AuthContext.js
+new file mode 100644
+index 0000000..d180610
+--- /dev/null
++++ b/viewer/client/src/features/auth/AuthContext.js
+@@ -0,0 +1,11 @@
++import { createContext, useContext } from 'react';
++
++// { user, loading, signIn(username, password), signOut(), refresh() }
++// user is { username, name, email } or null. Provided by AuthProvider.jsx.
++export const AuthContext = createContext(null);
++
++export function useAuth() {
++  const auth = useContext(AuthContext);
++  if (!auth) throw new Error('useAuth() must be used inside <AuthProvider>');
++  return auth;
++}
+diff --git a/viewer/client/src/features/auth/AuthProvider.jsx b/viewer/client/src/features/auth/AuthProvider.jsx
+new file mode 100644
+index 0000000..cdbaa46
+--- /dev/null
++++ b/viewer/client/src/features/auth/AuthProvider.jsx
+@@ -0,0 +1,42 @@
++import { useCallback, useEffect, useMemo, useState } from 'react';
++import API from '../../services/api';
++import { AuthContext } from './AuthContext';
++
++// Keeps track of who is signed in. The session itself is an httpOnly cookie set
++// by the server, so nothing is stored in the browser here: on load we just ask
++// the server (GET /api/auth/me), and a 401 means nobody is signed in.
++export default function AuthProvider({ children }) {
++  const [state, setState] = useState({ user: null, loading: true });
++
++  const refresh = useCallback(async () => {
++    try {
++      const res = await API.get('/auth/me');
++      setState({ user: res.data.user, loading: false });
++    } catch (err) {
++      if (err.response?.status !== 401) console.error('GET /auth/me failed:', err);
++      setState({ user: null, loading: false });
++    }
++  }, []);
++
++  useEffect(() => {
++    refresh();
++  }, [refresh]);
++
++  // Throws on failure, so the sign-in form can show the server's message.
++  const signIn = useCallback(async (username, password) => {
++    const res = await API.post('/auth/login', { username, password });
++    setState({ user: res.data.user, loading: false });
++    return res.data.user;
++  }, []);
++
++  const signOut = useCallback(async () => {
++    try {
++      await API.post('/auth/logout');
++    } finally {
++      setState({ user: null, loading: false });
++    }
++  }, []);
++
++  const value = useMemo(() => ({ ...state, signIn, signOut, refresh }), [state, signIn, signOut, refresh]);
++  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
++}
+diff --git a/viewer/client/src/features/auth/RequireAuth.jsx b/viewer/client/src/features/auth/RequireAuth.jsx
+new file mode 100644
+index 0000000..f101960
+--- /dev/null
++++ b/viewer/client/src/features/auth/RequireAuth.jsx
+@@ -0,0 +1,20 @@
++import { Navigate, useLocation } from 'react-router-dom';
++import StatusMessage from '../../components/StatusMessage';
++import { useAuth } from './AuthContext';
++
++// Wrap a page's element in this (see routes.jsx) to make the page sign-in only.
++// Signed-out visitors go to /sign-in, which sends them back here afterwards.
++export default function RequireAuth({ children }) {
++  const { user, loading } = useAuth();
++  const location = useLocation();
++
++  if (loading) {
++    return (
++      <div className="auth-wait">
++        <StatusMessage loading />
++      </div>
++    );
++  }
++  if (!user) return <Navigate to="/sign-in" replace state={{ from: location }} />;
++  return children;
++}
+diff --git a/viewer/client/src/features/auth/SignInPage.css b/viewer/client/src/features/auth/SignInPage.css
+new file mode 100644
+index 0000000..a2e8c22
+--- /dev/null
++++ b/viewer/client/src/features/auth/SignInPage.css
+@@ -0,0 +1,43 @@
++.si { max-width: 420px; margin: 48px auto; padding: 0 20px; font-family: system-ui, sans-serif; color: #1f2430; }
++.si-panel { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 28px 28px 24px; }
++.si h1 { margin: 0 0 4px; font-size: 26px; }
++.si-sub { margin: 0 0 18px; color: #555; font-size: 15px; }
++
++.si-mock {
++  margin: 0 0 20px; padding: 10px 12px; font-size: 14px; line-height: 1.45;
++  background: #fff6db; border-left: 4px solid #ffb81c; border-radius: 4px; color: #4a3b00;
++}
++
++.si-form { display: flex; flex-direction: column; gap: 14px; }
++.si-form label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; }
++.si-form input {
++  font: inherit; font-weight: 400; font-size: 16px; color: #1f2430;
++  padding: 9px 11px; border: 1px solid #b9bfcc; border-radius: 6px; background: #fff;
++}
++.si-form input:focus-visible { outline: 3px solid #8fb0ff; outline-offset: 1px; border-color: #003594; }
++.si-error { margin: 0; color: #b00020; font-size: 14px; }
++
++.si-submit {
++  font: inherit; font-size: 16px; font-weight: 600; padding: 10px; margin-top: 4px;
++  border: none; border-radius: 6px; background: #003594; color: #fff; cursor: pointer;
++}
++.si-submit:hover:not(:disabled) { background: #00297a; }
++.si-submit:disabled { background: #9aa6c2; cursor: not-allowed; }
++.si-submit:focus-visible { outline: 3px solid #8fb0ff; outline-offset: 2px; }
++
++.si-demo { margin-top: 24px; padding-top: 18px; border-top: 1px solid #e5e7ee; font-size: 14px; }
++.si-demo h2 { margin: 0 0 4px; font-size: 15px; }
++.si-demo p { margin: 0 0 10px; color: #555; }
++.si-demo code { background: #eef1fb; padding: 1px 6px; border-radius: 4px; color: #1f2430; }
++.si-demo ul { list-style: none; margin: 0; padding: 0; }
++.si-demo li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 0; }
++.si-demo li strong { font-variant-numeric: tabular-nums; margin-right: 6px; }
++.si-demo-count { display: block; color: #777; font-size: 13px; }
++.si-demo button {
++  font: inherit; font-size: 13px; padding: 4px 12px; border: 1px solid #003594; border-radius: 999px;
++  background: #fff; color: #003594; cursor: pointer;
++}
++.si-demo button:hover { background: #eef1fb; }
++.si-demo button:focus-visible { outline: 3px solid #8fb0ff; outline-offset: 1px; }
++
++.auth-wait { max-width: 960px; margin: 40px auto; padding: 0 20px; font-family: system-ui, sans-serif; }
+diff --git a/viewer/client/src/features/auth/SignInPage.jsx b/viewer/client/src/features/auth/SignInPage.jsx
+new file mode 100644
+index 0000000..c013ec8
+--- /dev/null
++++ b/viewer/client/src/features/auth/SignInPage.jsx
+@@ -0,0 +1,114 @@
++import { useState } from 'react';
++import { Navigate, useLocation } from 'react-router-dom';
++import useApiGet from '../../hooks/useApiGet';
++import { useAuth } from './AuthContext';
++import './SignInPage.css';
++
++// MOCK sign-in. Stands in for Pitt SSO until the project has access to it: the
++// server only accepts the demo accounts in server/src/auth/mockUsers.js.
++// When SSO arrives, this form becomes a "Sign in with Pitt" button that
++// follows the loginUrl from GET /api/auth/provider.
++export default function SignInPage() {
++  const { user, signIn } = useAuth();
++  const location = useLocation();
++  const { data: provider } = useApiGet('/auth/provider');
++  const [username, setUsername] = useState('');
++  const [password, setPassword] = useState('');
++  const [submitting, setSubmitting] = useState(false);
++  const [error, setError] = useState('');
++
++  // Signed in (already, or just now): go back to the page that sent us here.
++  if (user) return <Navigate to={location.state?.from ?? '/bookings'} replace />;
++
++  async function handleSubmit(event) {
++    event.preventDefault();
++    setError('');
++    setSubmitting(true);
++    try {
++      await signIn(username, password);
++    } catch (err) {
++      setError(err.response?.data?.error ?? 'The server did not answer. Check that the viewer server is running, then try again.');
++      setSubmitting(false);
++    }
++  }
++
++  function fillDemoAccount(account) {
++    setUsername(account.username);
++    setPassword(provider.demoPassword);
++    setError('');
++  }
++
++  const canSubmit = username.trim() !== '' && password !== '' && !submitting;
++
++  return (
++    <div className="si">
++      <div className="si-panel">
++        <h1>Sign in</h1>
++        <p className="si-sub">Use your Pitt account to see your study room bookings.</p>
++
++        <p className="si-mock" role="note">
++          This is a development stand-in for Pitt sign-in. It only knows the demo accounts below, so don&apos;t
++          enter your real Pitt password here.
++        </p>
++
++        <form className="si-form" onSubmit={handleSubmit}>
++          <label>
++            Pitt username
++            <input
++              name="username"
++              autoComplete="username"
++              autoCapitalize="none"
++              spellCheck="false"
++              placeholder="abc123"
++              value={username}
++              onChange={(e) => setUsername(e.target.value)}
++              autoFocus
++            />
++          </label>
++          <label>
++            Password
++            <input
++              name="password"
++              type="password"
++              autoComplete="current-password"
++              value={password}
++              onChange={(e) => setPassword(e.target.value)}
++            />
++          </label>
++          {error && (
++            <p className="si-error" role="alert">
++              {error}
++            </p>
++          )}
++          <button type="submit" className="si-submit" disabled={!canSubmit}>
++            {submitting ? 'Signing in…' : 'Sign in'}
++          </button>
++        </form>
++
++        {provider?.demoAccounts?.length > 0 && (
++          <section className="si-demo" aria-labelledby="si-demo-title">
++            <h2 id="si-demo-title">Demo accounts</h2>
++            <p>
++              Every demo account uses the password <code>{provider.demoPassword}</code>.
++            </p>
++            <ul>
++              {provider.demoAccounts.map((a) => (
++                <li key={a.username}>
++                  <span>
++                    <strong>{a.username}</strong> {a.name}
++                    <span className="si-demo-count">
++                      {a.bookings === 0 ? 'no bookings' : `${a.bookings} booking${a.bookings === 1 ? '' : 's'}`}
++                    </span>
++                  </span>
++                  <button type="button" onClick={() => fillDemoAccount(a)}>
++                    Fill in
++                  </button>
++                </li>
++              ))}
++            </ul>
++          </section>
++        )}
++      </div>
++    </div>
++  );
++}
+diff --git a/viewer/client/src/features/bookings/BookingRow.jsx b/viewer/client/src/features/bookings/BookingRow.jsx
+new file mode 100644
+index 0000000..bd16d9c
+--- /dev/null
++++ b/viewer/client/src/features/bookings/BookingRow.jsx
+@@ -0,0 +1,41 @@
++import { Link } from 'react-router-dom';
++import { formatDuration, formatTimeRange, isInProgress } from './format';
++
++// One booking: when it is, and where. `children` renders at the end of the row:
++// the slot for the Edit / Cancel buttons from US1-US3.
++export default function BookingRow({ booking: b, now, children }) {
++  const live = isInProgress(b, now);
++  const duration = formatDuration(b.start, b.end);
++
++  return (
++    <li className={`bk-row${live ? ' bk-row-live' : ''}`}>
++      <div className="bk-when">
++        <span className="bk-time">{formatTimeRange(b.start, b.end)}</span>
++        {duration && <span className="bk-duration">{duration}</span>}
++        {live && <span className="bk-live">In progress</span>}
++      </div>
++
++      <div className="bk-where">
++        {b.room ? (
++          <>
++            <h4 className="bk-room">{b.room.roomName}</h4>
++            <p className="bk-place">
++              {b.room.roomNum != null && <span>Room {b.room.roomNum}, </span>}
++              <Link to={`/by-building?building=${encodeURIComponent(b.building.name)}`}>{b.building.name}</Link>
++            </p>
++            <p className="bk-detail">{b.building.address ?? 'Address not listed'}</p>
++            {b.room.capacity != null && <p className="bk-detail">Seats {b.room.capacity}</p>}
++          </>
++        ) : (
++          <>
++            <h4 className="bk-room">Room not found</h4>
++            <p className="bk-detail">This room is no longer in the database. Check with the building, or book another room.</p>
++          </>
++        )}
++        {b.dataSource === 'mock' && <span className="bk-tag">Demo booking</span>}
++      </div>
++
++      {children}
++    </li>
++  );
++}
+diff --git a/viewer/client/src/features/bookings/MyBookings.css b/viewer/client/src/features/bookings/MyBookings.css
+new file mode 100644
+index 0000000..f220719
+--- /dev/null
++++ b/viewer/client/src/features/bookings/MyBookings.css
+@@ -0,0 +1,47 @@
++.bk { max-width: 860px; margin: 40px auto; padding: 0 20px; font-family: system-ui, sans-serif; color: #1f2430; text-align: left; }
++.bk-header h1 { margin: 0 0 4px; }
++.bk-sub { margin: 0 0 24px; color: #666; font-size: 14px; }
++
++.bk h2 { font-size: 19px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
++.bk-count {
++  display: inline-block; min-width: 1.6em; padding: 1px 7px; border-radius: 999px; text-align: center;
++  background: #e8eaf0; color: #333; font-size: 13px; font-weight: 600;
++}
++
++.bk-day { margin-bottom: 20px; }
++.bk-day h3 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
++.bk-date { font-weight: 400; color: #666; margin-left: 4px; }
++
++/* One panel per day; rows inside it are divided, not separate cards. */
++.bk-list { list-style: none; margin: 0; padding: 0; background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
++.bk-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 18px; padding: 16px 18px; border-left: 4px solid transparent; }
++.bk-row + .bk-row { border-top: 1px solid #ececf2; }
++.bk-row-live { border-left-color: #ffb81c; background: #fffcf2; }
++
++.bk-when { display: flex; flex-direction: column; gap: 2px; }
++.bk-time { font-size: 20px; font-weight: 700; color: #003594; font-variant-numeric: tabular-nums; line-height: 1.2; }
++.bk-duration { font-size: 13px; color: #666; }
++.bk-live { margin-top: 6px; align-self: flex-start; font-size: 12px; font-weight: 700; color: #6b4e00; background: #ffe7a8; padding: 2px 8px; border-radius: 999px; }
++
++.bk-where { min-width: 0; }
++.bk-room { margin: 0 0 2px; font-size: 16px; }
++.bk-place { margin: 0 0 4px; font-size: 14px; }
++.bk-place a { color: #003594; }
++.bk-detail { margin: 0; font-size: 13px; color: #666; }
++.bk-tag { display: inline-block; margin-top: 8px; font-size: 12px; color: #555; background: #f0f0f0; padding: 1px 8px; border-radius: 999px; }
++
++.bk-empty, .bk-none { color: #555; }
++.bk-empty { background: #fff; border: 1px dashed #c7cde0; border-radius: 8px; padding: 24px; text-align: center; }
++.bk-empty p { margin: 0 0 8px; font-size: 16px; }
++.bk-empty a, .bk-none a { color: #003594; font-weight: 600; }
++
++.bk-past { margin-top: 28px; }
++.bk-past summary { cursor: pointer; font-size: 17px; font-weight: 700; margin-bottom: 12px; }
++.bk-past summary .bk-count { margin-left: 6px; vertical-align: 1px; }
++.bk-past .bk-time { color: #555; }
++
++.bk a:focus-visible, .bk-past summary:focus-visible { outline: 3px solid #8fb0ff; outline-offset: 2px; border-radius: 3px; }
++
++@media (max-width: 600px) {
++  .bk-row { grid-template-columns: 1fr; gap: 8px; }
++}
+diff --git a/viewer/client/src/features/bookings/MyBookings.jsx b/viewer/client/src/features/bookings/MyBookings.jsx
+new file mode 100644
+index 0000000..26c194e
+--- /dev/null
++++ b/viewer/client/src/features/bookings/MyBookings.jsx
+@@ -0,0 +1,114 @@
++import { useEffect, useMemo } from 'react';
++import { Link } from 'react-router-dom';
++import useApiGet from '../../hooks/useApiGet';
++import StatusMessage from '../../components/StatusMessage';
++import { useAuth } from '../auth/AuthContext';
++import BookingRow from './BookingRow';
++import { dayHeading, dayKey, hasEnded } from './format';
++import './MyBookings.css';
++
++// US5: a signed-in student sees the room (building, room number, address) and
++// the time of each of their bookings, grouped by day. Sign-in only: routes.jsx
++// wraps this page in <RequireAuth>.
++
++function groupByDay(bookings) {
++  const groups = new Map();
++  for (const b of bookings) {
++    const key = dayKey(b.start);
++    if (!groups.has(key)) groups.set(key, []);
++    groups.get(key).push(b);
++  }
++  return [...groups.values()];
++}
++
++function DayGroup({ bookings, now }) {
++  const { title, date } = dayHeading(bookings[0].start, now);
++  return (
++    <section className="bk-day">
++      <h3>
++        {title} <span className="bk-date">{date}</span>
++      </h3>
++      <ul className="bk-list">
++        {bookings.map((b) => (
++          <BookingRow key={b._id} booking={b} now={now} />
++        ))}
++      </ul>
++    </section>
++  );
++}
++
++export default function MyBookings() {
++  const { user, refresh } = useAuth();
++  const { data, loading, error, reload } = useApiGet('/bookings');
++  const sessionEnded = error?.response?.status === 401;
++
++  // The session ran out while the page was open: re-check, which sends the
++  // student back to the sign-in page.
++  useEffect(() => {
++    if (sessionEnded) refresh();
++  }, [sessionEnded, refresh]);
++
++  const { now, upcoming, past } = useMemo(() => {
++    const at = Date.now();
++    const all = data ?? [];
++    return {
++      now: at,
++      upcoming: all.filter((b) => !hasEnded(b, at)),
++      past: all.filter((b) => hasEnded(b, at)).reverse(), // most recent first
++    };
++  }, [data]);
++
++  const hasAny = upcoming.length + past.length > 0;
++
++  return (
++    <div className="bk">
++      <header className="bk-header">
++        <h1>My Bookings</h1>
++        {user && (
++          <p className="bk-sub">
++            Signed in as {user.name} ({user.username})
++          </p>
++        )}
++      </header>
++
++      <StatusMessage
++        loading={loading && !data}
++        error={error && !data && !sessionEnded}
++        onRetry={reload}
++      />
++
++      {data && !hasAny && (
++        <div className="bk-empty">
++          <p>You have no study room bookings.</p>
++          <Link to="/rooms">Browse study rooms</Link>
++        </div>
++      )}
++
++      {hasAny && (
++        <section aria-labelledby="bk-upcoming-title">
++          <h2 id="bk-upcoming-title">
++            Upcoming <span className="bk-count">{upcoming.length}</span>
++          </h2>
++          {upcoming.length === 0 ? (
++            <p className="bk-none">
++              Nothing coming up. <Link to="/rooms">Browse study rooms</Link>
++            </p>
++          ) : (
++            groupByDay(upcoming).map((group) => <DayGroup key={dayKey(group[0].start)} bookings={group} now={now} />)
++          )}
++        </section>
++      )}
++
++      {past.length > 0 && (
++        <details className="bk-past">
++          <summary>
++            Past bookings <span className="bk-count">{past.length}</span>
++          </summary>
++          {groupByDay(past).map((group) => (
++            <DayGroup key={dayKey(group[0].start)} bookings={group} now={now} />
++          ))}
++        </details>
++      )}
++    </div>
++  );
++}
+diff --git a/viewer/client/src/features/bookings/format.js b/viewer/client/src/features/bookings/format.js
+new file mode 100644
+index 0000000..9e1ca7d
+--- /dev/null
++++ b/viewer/client/src/features/bookings/format.js
+@@ -0,0 +1,74 @@
++// Date and time wording for bookings, shown in the browser's time zone.
++
++const MINUTE = 60 * 1000;
++const DAY = 24 * 60 * MINUTE;
++
++function toDate(value) {
++  if (value == null) return null;
++  const d = new Date(value);
++  return Number.isNaN(d.getTime()) ? null : d;
++}
++
++function startOfDay(date) {
++  const d = new Date(date);
++  d.setHours(0, 0, 0, 0);
++  return d;
++}
++
++// Groups bookings by the local day they start on: 'YYYY-MM-DD', or 'none'.
++export function dayKey(value) {
++  const d = toDate(value);
++  if (!d) return 'none';
++  const pad = (n) => String(n).padStart(2, '0');
++  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
++}
++
++// -> { title: 'Today' | 'Tomorrow' | 'Yesterday' | 'Monday', date: 'November 19' }
++export function dayHeading(value, now = Date.now()) {
++  const d = toDate(value);
++  if (!d) return { title: 'No date set', date: '' };
++  const days = Math.round((startOfDay(d) - startOfDay(now)) / DAY);
++  const names = { 0: 'Today', 1: 'Tomorrow', [-1]: 'Yesterday' };
++  const sameYear = d.getFullYear() === new Date(now).getFullYear();
++  return {
++    title: names[days] ?? d.toLocaleDateString(undefined, { weekday: 'long' }),
++    date: d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', ...(sameYear ? {} : { year: 'numeric' }) }),
++  };
++}
++
++// '1:30 – 3:00 PM'
++export function formatTimeRange(startValue, endValue) {
++  const start = toDate(startValue);
++  const end = toDate(endValue);
++  if (!start) return 'Time not set';
++  const time = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
++  if (!end || end <= start) return time.format(start);
++  if (dayKey(start) !== dayKey(end)) {
++    const full = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
++    return full.formatRange(start, end);
++  }
++  return time.formatRange(start, end);
++}
++
++// '2 hr', '1 hr 30 min', '45 min'
++export function formatDuration(startValue, endValue) {
++  const start = toDate(startValue);
++  const end = toDate(endValue);
++  if (!start || !end) return '';
++  const minutes = Math.round((end - start) / MINUTE);
++  if (minutes <= 0) return '';
++  const h = Math.floor(minutes / 60);
++  const m = minutes % 60;
++  return [h > 0 && `${h} hr`, m > 0 && `${m} min`].filter(Boolean).join(' ');
++}
++
++// A booking counts as past once it has ended; one with no end is past once it has started.
++export function hasEnded(booking, now = Date.now()) {
++  const end = toDate(booking.end) ?? toDate(booking.start);
++  return end ? end.getTime() <= now : false;
++}
++
++export function isInProgress(booking, now = Date.now()) {
++  const start = toDate(booking.start);
++  return Boolean(start) && start.getTime() <= now && !hasEnded(booking, now);
++}
+diff --git a/viewer/client/src/main.jsx b/viewer/client/src/main.jsx
+index 6655269..866dd68 100644
+--- a/viewer/client/src/main.jsx
++++ b/viewer/client/src/main.jsx
+@@ -3,18 +3,22 @@ import { createRoot } from 'react-dom/client'
+ import { BrowserRouter, Routes, Route } from 'react-router-dom'
+ import './index.css'
+ import NavBar from './components/NavBar.jsx'
++import AuthProvider from './features/auth/AuthProvider.jsx'
+ import { pages } from './routes.jsx'
+ 
+ // The viewer is read-only. Pages are listed in routes.jsx.
++// AuthProvider tracks the (mock) Pitt sign-in used by pages like My Bookings.
+ createRoot(document.getElementById('root')).render(
+   <StrictMode>
+     <BrowserRouter>
+-      <NavBar />
+-      <Routes>
+-        {pages.map((p) => (
+-          <Route key={p.path} path={p.path} element={p.element} />
+-        ))}
+-      </Routes>
++      <AuthProvider>
++        <NavBar />
++        <Routes>
++          {pages.map((p) => (
++            <Route key={p.path} path={p.path} element={p.element} />
++          ))}
++        </Routes>
++      </AuthProvider>
+     </BrowserRouter>
+   </StrictMode>,
+ )
+diff --git a/viewer/client/src/routes.jsx b/viewer/client/src/routes.jsx
+index 6ae6f04..4005b35 100644
+--- a/viewer/client/src/routes.jsx
++++ b/viewer/client/src/routes.jsx
+@@ -3,15 +3,29 @@ import RoomBrowser from './features/rooms/RoomBrowser';
+ import BuildingRooms from './features/assignments/BuildingRooms';
+ import DatabaseViewer from './features/database/DatabaseViewer';
+ import RoomsPage from './features/rooms/RoomsPage';
++import MyBookings from './features/bookings/MyBookings';
++import SignInPage from './features/auth/SignInPage';
++import RequireAuth from './features/auth/RequireAuth';
+ 
+ // Page registry: the router (main.jsx) and the nav bar both read this list.
+-// To add a page for a new feature, add one entry here.
++// To add a page for a new feature, add one entry here. Wrap the element in
++// <RequireAuth> to make the page sign-in only; `hideInNav: true` leaves it out of the nav bar.
+ export const pages = [
+   { path: '/', label: 'Buildings', element: <BuildingBrowser /> },
+   { path: '/rooms', label: 'Rooms', element: <RoomBrowser /> },
+   { path: '/by-building', label: 'Rooms by Building', element: <BuildingRooms /> },
+   { path: '/database', label: 'Database', element: <DatabaseViewer /> },
+   { path: '/rooms', label: 'Rooms', element: <RoomsPage /> },
++  {
++    path: '/bookings',
++    label: 'My Bookings',
++    element: (
++      <RequireAuth>
++        <MyBookings />
++      </RequireAuth>
++    ),
++  },
++  { path: '/sign-in', label: 'Sign in', element: <SignInPage />, hideInNav: true },
+ ];
+ 
+ // Inside client/src/routes.jsx
+diff --git a/viewer/server/.env.example b/viewer/server/.env.example
+index 46e85b4..484ef19 100644
+--- a/viewer/server/.env.example
++++ b/viewer/server/.env.example
+@@ -1,6 +1,9 @@
+ # create a new file called ".env" with the given password filled in in place of the <password> and the comments removed
+ READ_MONGODB_URI="mongodb+srv://readUser:<password>@crumbs1530.9q4u14v.mongodb.net/test?retryWrites=true&w=majority"
+ PORT=5001
++# Signs the sign-in cookie. Any long random string works. If it is left empty, a random one is
++# made at start-up, which signs everyone out whenever the server restarts.
++SESSION_SECRET=
+ 
+ 
+ 
+diff --git a/viewer/server/src/app.js b/viewer/server/src/app.js
+index ed97068..9c865ec 100644
+--- a/viewer/server/src/app.js
++++ b/viewer/server/src/app.js
+@@ -3,13 +3,18 @@ const cors = require('cors');
+ const buildingsRouter = require('./routes/buildings');
+ const assignmentsRouter = require('./routes/assignments');
+ const roomsRouter = require('./routes/rooms');
++const authRouter = require('./routes/auth');
++const bookingsRouter = require('./routes/bookings');
+ 
+ const app = express();
+ app.use(cors());
+ 
+-// This whole server is read-only: reject anything that isn't a read.
++// This whole server is read-only: reject anything that isn't a read. The one
++// exception is signing in and out, which only sets or clears a cookie and never
++// touches the database (the database user is read-only anyway).
++const ALLOWED_NON_READS = new Set(['POST /api/auth/login', 'POST /api/auth/logout']);
+ app.use((req, res, next) => {
+-  if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
++  if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && !ALLOWED_NON_READS.has(`${req.method} ${req.path}`)) {
+     return res.status(405).set('Allow', 'GET, HEAD, OPTIONS').json({ error: 'Read-only server' });
+   }
+   next();
+@@ -17,6 +22,8 @@ app.use((req, res, next) => {
+ app.use('/api/rooms', roomsRouter);
+ 
+ app.get('/api/health', (req, res) => res.json({ ok: true }));
++app.use('/api/auth', authRouter);
++app.use('/api', bookingsRouter);
+ app.use('/api', buildingsRouter);
+ app.use('/api', roomsRouter);
+ app.use('/api', assignmentsRouter);
+diff --git a/viewer/server/src/auth.test.js b/viewer/server/src/auth.test.js
+new file mode 100644
+index 0000000..ab6f55b
+--- /dev/null
++++ b/viewer/server/src/auth.test.js
+@@ -0,0 +1,131 @@
++// Mock sign-in tests. None of these touch the database, so they run without a
++// READ_MONGODB_URI.
++process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'test-only-secret';
++
++const { describe, it, before, after } = require('node:test');
++const assert = require('node:assert');
++const app = require('./app');
++const session = require('./auth/session');
++const provider = require('./auth/provider');
++const mockUsers = require('./auth/mockUsers');
++
++const demo = mockUsers.accounts[0];
++const user = { username: demo.username, name: demo.name, email: `${demo.username}@pitt.edu` };
++
++describe('session tokens', () => {
++  it('round-trips the user', () => {
++    const token = session.createSessionToken(user);
++    assert.deepStrictEqual(session.readSessionToken(token), user);
++  });
++
++  it('rejects a token whose payload was edited', () => {
++    const [, signature] = session.createSessionToken(user).split('.');
++    const forged = Buffer.from(JSON.stringify({ sub: 'someone-else', exp: Date.now() + 60000 })).toString('base64url');
++    assert.strictEqual(session.readSessionToken(`${forged}.${signature}`), null);
++  });
++
++  it('rejects an expired token', () => {
++    const issued = Date.now() - session.SESSION_TTL_MS - 1000;
++    assert.strictEqual(session.readSessionToken(session.createSessionToken(user, issued)), null);
++  });
++
++  it('rejects garbage', () => {
++    for (const bad of [undefined, '', 'abc', 'a.b.c', '.', 'x.y']) {
++      assert.strictEqual(session.readSessionToken(bad), null, `accepted ${JSON.stringify(bad)}`);
++    }
++  });
++
++  it('reads one cookie out of a Cookie header', () => {
++    const req = { headers: { cookie: `other=1; ${session.COOKIE_NAME}=abc.def; last=2` } };
++    assert.strictEqual(session.getCookie(req, session.COOKIE_NAME), 'abc.def');
++    assert.strictEqual(session.getCookie({ headers: {} }, session.COOKIE_NAME), undefined);
++  });
++});
++
++describe('mock provider', () => {
++  it('accepts a demo account, also typed as an email or in capitals', async () => {
++    for (const typed of [demo.username, ` ${demo.username.toUpperCase()} `, `${demo.username}@pitt.edu`]) {
++      assert.deepStrictEqual(await provider.verifyCredentials(typed, mockUsers.password), user);
++    }
++  });
++
++  it('rejects a wrong password or unknown user', async () => {
++    assert.strictEqual(await provider.verifyCredentials(demo.username, 'wrong'), null);
++    assert.strictEqual(await provider.verifyCredentials('nobody1', mockUsers.password), null);
++  });
++});
++
++describe('sign-in API', () => {
++  let server;
++  let baseUrl;
++
++  before(async () => {
++    await new Promise((resolve) => {
++      server = app.listen(0, () => {
++        baseUrl = `http://127.0.0.1:${server.address().port}`;
++        resolve();
++      });
++    });
++  });
++
++  after(() => server && server.close());
++
++  const login = (body) =>
++    fetch(`${baseUrl}/api/auth/login`, {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify(body),
++    });
++
++  const sessionCookieFrom = (response) => {
++    const header = response.headers.get('set-cookie') || '';
++    const match = header.match(new RegExp(`${session.COOKIE_NAME}=([^;]+)`));
++    return match ? `${session.COOKIE_NAME}=${match[1]}` : null;
++  };
++
++  it('lists the demo accounts for the sign-in page', async () => {
++    const res = await fetch(`${baseUrl}/api/auth/provider`);
++    assert.strictEqual(res.status, 200);
++    const body = await res.json();
++    assert.strictEqual(body.provider, 'mock');
++    assert.ok(body.demoAccounts.some((a) => a.username === demo.username));
++  });
++
++  it('rejects missing fields with 400 and bad credentials with 401', async () => {
++    assert.strictEqual((await login({ username: demo.username })).status, 400);
++    const bad = await login({ username: demo.username, password: 'wrong' });
++    assert.strictEqual(bad.status, 401);
++    assert.strictEqual(sessionCookieFrom(bad), null);
++  });
++
++  it('signs in, reports who is signed in, and signs out', async () => {
++    const res = await login({ username: demo.username, password: mockUsers.password });
++    assert.strictEqual(res.status, 200);
++    assert.deepStrictEqual((await res.json()).user, user);
++
++    const cookie = sessionCookieFrom(res);
++    assert.ok(cookie, 'expected a session cookie');
++    assert.match(res.headers.get('set-cookie'), /HttpOnly/i);
++
++    const me = await fetch(`${baseUrl}/api/auth/me`, { headers: { Cookie: cookie } });
++    assert.strictEqual(me.status, 200);
++    assert.deepStrictEqual((await me.json()).user, user);
++
++    const out = await fetch(`${baseUrl}/api/auth/logout`, { method: 'POST', headers: { Cookie: cookie } });
++    assert.strictEqual(out.status, 204);
++    assert.match(out.headers.get('set-cookie') || '', new RegExp(`${session.COOKIE_NAME}=;`));
++  });
++
++  it('answers 401 for /me and /bookings without a valid cookie', async () => {
++    assert.strictEqual((await fetch(`${baseUrl}/api/auth/me`)).status, 401);
++    assert.strictEqual((await fetch(`${baseUrl}/api/bookings`)).status, 401);
++    const forged = { headers: { Cookie: `${session.COOKIE_NAME}=not.valid` } };
++    assert.strictEqual((await fetch(`${baseUrl}/api/bookings`, forged)).status, 401);
++  });
++
++  it('still rejects every other write', async () => {
++    assert.strictEqual((await fetch(`${baseUrl}/api/rooms`, { method: 'POST' })).status, 405);
++    assert.strictEqual((await fetch(`${baseUrl}/api/bookings`, { method: 'DELETE' })).status, 405);
++    assert.strictEqual((await fetch(`${baseUrl}/api/auth/me`, { method: 'POST' })).status, 405);
++  });
++});
+diff --git a/viewer/server/src/auth/mockUsers.js b/viewer/server/src/auth/mockUsers.js
+new file mode 100644
+index 0000000..102963d
+--- /dev/null
++++ b/viewer/server/src/auth/mockUsers.js
+@@ -0,0 +1,38 @@
++// MOCK Pitt accounts, used in place of Pitt SSO until the project has access to it.
++// These are the only accounts the mock sign-in accepts, so nobody should ever type
++// a real Pitt password into it.
++//
++// `bookings` lists each account's demo bookings relative to today, so the demo
++// never goes stale:
++//   { day: 1, at: '10:00', minutes: 120 }   tomorrow, 10:00 AM to 12:00 PM
++//   { day: -3, at: '16:00', minutes: 60 }   three days ago (shows under "Past")
++//   { day: 0, at: 'now', minutes: 90 }      started at the last half hour (shows "In progress")
++// The rooms are picked from the real `rooms` collection; see bookings/mockBookings.js.
++
++const password = 'password';
++
++const accounts = [
++  {
++    username: 'abc123',
++    name: 'Alex Carter',
++    bookings: [
++      { day: 0, at: 'now', minutes: 90 },
++      { day: 1, at: '10:00', minutes: 120 },
++      { day: 4, at: '14:30', minutes: 60 },
++      { day: -3, at: '16:00', minutes: 120 },
++    ],
++  },
++  {
++    username: 'def456',
++    name: 'Dana Fischer',
++    bookings: [{ day: 2, at: '09:00', minutes: 180 }],
++  },
++  {
++    // No bookings: shows the page's empty state.
++    username: 'ghi789',
++    name: 'Gabe Ito',
++    bookings: [],
++  },
++];
++
++module.exports = { password, accounts };
+diff --git a/viewer/server/src/auth/provider.js b/viewer/server/src/auth/provider.js
+new file mode 100644
+index 0000000..02568bf
+--- /dev/null
++++ b/viewer/server/src/auth/provider.js
+@@ -0,0 +1,52 @@
++const crypto = require('crypto');
++const mockUsers = require('./mockUsers');
++
++// THE place to swap in Pitt SSO. Everything else (the session cookie,
++// /api/auth/me, /api/bookings, the client) only ever sees the
++// { username, name, email } object that verifyCredentials() returns.
++//
++// Today this is a MOCK: it checks the username and password against
++// auth/mockUsers.js. Pitt sign-in is single sign-on, so with real access the
++// password check goes away: /api/auth/login would redirect to Pitt's sign-in
++// page, Pitt would send the student back to a callback route with a signed
++// response, and that callback would read the student's Pitt username from it and
++// call setSessionCookie() exactly like routes/auth.js does now.
++
++const name = 'mock';
++
++// Accepts "abc123", " ABC123 " or "abc123@pitt.edu".
++function normalizeUsername(raw) {
++  return String(raw).trim().toLowerCase().replace(/@pitt\.edu$/, '');
++}
++
++// Compares hashes so the check takes the same time however close the guess is.
++function sameText(a, b) {
++  const ha = crypto.createHash('sha256').update(String(a)).digest();
++  const hb = crypto.createHash('sha256').update(String(b)).digest();
++  return crypto.timingSafeEqual(ha, hb);
++}
++
++function findMockAccount(username) {
++  return mockUsers.accounts.find((a) => a.username === username) ?? null;
++}
++
++// -> { username, name, email } if the credentials are right, otherwise null
++async function verifyCredentials(username, password) {
++  const account = findMockAccount(normalizeUsername(username));
++  const passwordOk = sameText(password, mockUsers.password);
++  if (!account || !passwordOk) return null;
++  return { username: account.username, name: account.name, email: `${account.username}@pitt.edu` };
++}
++
++// What the sign-in page needs to know. For the mock that's the demo accounts, so
++// teammates and graders can sign in without asking anyone. A real SSO provider
++// would return something like { provider: 'pitt-sso', loginUrl } instead.
++function describe() {
++  return {
++    provider: name,
++    demoPassword: mockUsers.password,
++    demoAccounts: mockUsers.accounts.map((a) => ({ username: a.username, name: a.name, bookings: a.bookings.length })),
++  };
++}
++
++module.exports = { name, normalizeUsername, verifyCredentials, findMockAccount, describe };
+diff --git a/viewer/server/src/auth/session.js b/viewer/server/src/auth/session.js
+new file mode 100644
+index 0000000..edb4b7f
+--- /dev/null
++++ b/viewer/server/src/auth/session.js
+@@ -0,0 +1,110 @@
++const crypto = require('crypto');
++
++// Who is signed in, kept in an httpOnly cookie. No database and no extra
++// dependencies: the cookie holds `<payload>.<signature>`, where the signature is
++// an HMAC of the payload with SESSION_SECRET, so the browser can't change whose
++// session it is.
++//
++// None of this changes when the mock sign-in is replaced by Pitt SSO. SSO only
++// changes how we find out *who* the student is (see auth/provider.js); after
++// that the server still calls setSessionCookie() with the same user object.
++
++const COOKIE_NAME = 'seatsaver_session';
++const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
++
++let secret;
++function getSecret() {
++  if (!secret) {
++    secret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
++    if (!process.env.SESSION_SECRET) {
++      console.warn('SESSION_SECRET is not set, so a random one is used: everyone is signed out when the server restarts.');
++    }
++  }
++  return secret;
++}
++
++function sign(data) {
++  return crypto.createHmac('sha256', getSecret()).update(data).digest('base64url');
++}
++
++// user: { username, name, email } -> token string
++function createSessionToken(user, now = Date.now()) {
++  const payload = { sub: user.username, name: user.name, email: user.email, exp: now + SESSION_TTL_MS };
++  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
++  return `${body}.${sign(body)}`;
++}
++
++// token string -> { username, name, email }, or null if it is missing, edited or expired
++function readSessionToken(token, now = Date.now()) {
++  if (typeof token !== 'string') return null;
++  const parts = token.split('.');
++  if (parts.length !== 2) return null;
++  const [body, signature] = parts;
++
++  const expected = Buffer.from(sign(body));
++  const given = Buffer.from(signature);
++  if (expected.length !== given.length || !crypto.timingSafeEqual(expected, given)) return null;
++
++  let payload;
++  try {
++    payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
++  } catch {
++    return null;
++  }
++  if (!payload || typeof payload.sub !== 'string' || typeof payload.exp !== 'number' || payload.exp <= now) {
++    return null;
++  }
++  return { username: payload.sub, name: payload.name, email: payload.email };
++}
++
++// Reads one cookie from the request (saves adding cookie-parser for a single value).
++function getCookie(req, name) {
++  const header = req.headers.cookie;
++  if (!header) return undefined;
++  for (const part of header.split(';')) {
++    const eq = part.indexOf('=');
++    if (eq === -1 || part.slice(0, eq).trim() !== name) continue;
++    try {
++      return decodeURIComponent(part.slice(eq + 1).trim());
++    } catch {
++      return undefined;
++    }
++  }
++  return undefined;
++}
++
++function cookieOptions() {
++  return {
++    httpOnly: true, // page JavaScript can't read the cookie
++    sameSite: 'lax', // the browser won't send it on cross-site POSTs
++    secure: process.env.NODE_ENV === 'production', // HTTPS-only once deployed
++    path: '/',
++  };
++}
++
++function setSessionCookie(res, user) {
++  res.cookie(COOKIE_NAME, createSessionToken(user), { ...cookieOptions(), maxAge: SESSION_TTL_MS });
++}
++
++function clearSessionCookie(res) {
++  res.clearCookie(COOKIE_NAME, cookieOptions());
++}
++
++// Middleware for routes that need a signed-in student: sets req.user, or answers 401.
++function requireAuth(req, res, next) {
++  const user = readSessionToken(getCookie(req, COOKIE_NAME));
++  if (!user) return res.status(401).json({ error: 'Sign in to continue.' });
++  req.user = user;
++  next();
++}
++
++module.exports = {
++  COOKIE_NAME,
++  SESSION_TTL_MS,
++  createSessionToken,
++  readSessionToken,
++  getCookie,
++  setSessionCookie,
++  clearSessionCookie,
++  requireAuth,
++};
+diff --git a/viewer/server/src/bookings.test.js b/viewer/server/src/bookings.test.js
+new file mode 100644
+index 0000000..6f45d45
+--- /dev/null
++++ b/viewer/server/src/bookings.test.js
+@@ -0,0 +1,128 @@
++require('dotenv').config();
++process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'test-only-secret';
++
++const { describe, it, after } = require('node:test');
++const assert = require('node:assert');
++const mongoose = require('mongoose');
++const app = require('./app');
++const mockUsers = require('./auth/mockUsers');
++const { buildMockBookings, slotStart } = require('./bookings/mockBookings');
++const { toBookingViews } = require('./bookings/bookingViews');
++
++const rooms = [
++  { _id: 'r1', roomName: 'Study Room A', inBuilding: 'Hillman Library', roomNum: 101, capacity: 4 },
++  { _id: 'r2', roomName: 'Study Room B', inBuilding: 'Hillman Library', roomNum: 102, capacity: 6 },
++  { _id: 'r3', roomName: 'Group Room', inBuilding: 'Sennott Square', roomNum: 5500, capacity: 10 },
++  { _id: 'r4', roomName: 'Lost Room', inBuilding: 'Typo Hall', roomNum: 1, capacity: 2 },
++];
++const buildings = [
++  { buildName: 'Hillman Library', address: '3960 Forbes Ave', classification: 'Library' },
++  { buildName: 'Sennott Square', address: '210 S Bouquet St', classification: 'Academic' },
++];
++const buildingNames = new Set(buildings.map((b) => b.buildName));
++const account = mockUsers.accounts.find((a) => a.bookings.length >= 3);
++
++describe('mock bookings', () => {
++  const now = new Date(2026, 10, 19, 13, 47); // Thu 19 Nov 2026, 1:47 PM
++
++  it('turns { day, at } into a start time', () => {
++    assert.deepStrictEqual(slotStart({ day: 1, at: '10:00' }, now), new Date(2026, 10, 20, 10, 0));
++    assert.deepStrictEqual(slotStart({ day: -3, at: '16:30' }, now), new Date(2026, 10, 16, 16, 30));
++    assert.deepStrictEqual(slotStart({ day: 0, at: 'now' }, now), new Date(2026, 10, 19, 13, 30));
++  });
++
++  it('gives each slot a room from a known building, with an end after its start', () => {
++    const list = buildMockBookings(account, rooms, buildingNames, now);
++    assert.strictEqual(list.length, account.bookings.length);
++    for (const b of list) {
++      assert.ok(['r1', 'r2', 'r3'].includes(b.room), `picked ${b.room}, which has no known building`);
++      assert.ok(b.end > b.start);
++      assert.strictEqual(b.dataSource, 'mock');
++      assert.strictEqual(b.user, account.username);
++    }
++    // Different rooms while there are enough to go round.
++    const firstThree = list.slice(0, 3).map((b) => b.room);
++    assert.strictEqual(new Set(firstThree).size, 3);
++  });
++
++  it('is stable for the same account and rooms, whatever order the rooms come in', () => {
++    const a = buildMockBookings(account, rooms, buildingNames, now).map((b) => b.room);
++    const b = buildMockBookings(account, [...rooms].reverse(), buildingNames, now).map((x) => x.room);
++    assert.deepStrictEqual(a, b);
++  });
++
++  it('copes with no rooms and with accounts that have no bookings', () => {
++    const list = buildMockBookings(account, [], buildingNames, now);
++    assert.strictEqual(list.length, account.bookings.length);
++    assert.ok(list.every((b) => b.room === null));
++    assert.deepStrictEqual(buildMockBookings({ username: 'x', bookings: [] }, rooms, buildingNames, now), []);
++  });
++});
++
++describe('booking views', () => {
++  const bookings = [
++    { _id: 'b2', room: 'r3', start: new Date('2026-11-21T14:00:00Z'), end: new Date('2026-11-21T15:00:00Z') },
++    { _id: 'b1', room: 'r1', start: new Date('2026-11-20T10:00:00Z'), end: new Date('2026-11-20T12:00:00Z'), dataSource: 'mock' },
++    { _id: 'b3', room: 'gone', start: new Date('2026-11-22T09:00:00Z'), end: new Date('2026-11-22T10:00:00Z') },
++    { _id: 'b4', room: 'r4', start: new Date('2026-11-23T09:00:00Z'), end: new Date('2026-11-23T10:00:00Z') },
++  ];
++  const views = toBookingViews(bookings, rooms, buildings);
++
++  it('sorts soonest first', () => {
++    assert.deepStrictEqual(views.map((v) => v._id), ['b1', 'b2', 'b3', 'b4']);
++  });
++
++  it('attaches the room and its building', () => {
++    assert.deepStrictEqual(views[0].room, { _id: 'r1', roomName: 'Study Room A', roomNum: 101, capacity: 4 });
++    assert.deepStrictEqual(views[0].building, { name: 'Hillman Library', address: '3960 Forbes Ave', classification: 'Library' });
++    assert.strictEqual(views[0].status, 'active');
++    assert.strictEqual(views[0].dataSource, 'mock');
++  });
++
++  it('marks a missing room, and a room whose building is missing', () => {
++    assert.strictEqual(views[2].room, null);
++    assert.strictEqual(views[2].building, null);
++    assert.strictEqual(views[3].building.name, 'Typo Hall');
++    assert.strictEqual(views[3].building.address, null);
++  });
++});
++
++describe('GET /api/bookings (database)', () => {
++  let server;
++
++  it('returns the signed-in demo student\'s bookings with their rooms', async () => {
++    const uri = process.env.READ_MONGODB_URI;
++    assert.ok(uri, 'Database URI is missing from server/.env');
++    await mongoose.connect(uri);
++
++    await new Promise((resolve) => {
++      server = app.listen(0, resolve);
++    });
++    const baseUrl = `http://127.0.0.1:${server.address().port}`;
++
++    const login = await fetch(`${baseUrl}/api/auth/login`, {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify({ username: account.username, password: mockUsers.password }),
++    });
++    assert.strictEqual(login.status, 200);
++    const cookie = login.headers.get('set-cookie').split(';')[0];
++
++    const res = await fetch(`${baseUrl}/api/bookings`, { headers: { Cookie: cookie } });
++    assert.strictEqual(res.status, 200);
++    const list = await res.json();
++    assert.ok(Array.isArray(list), 'Expected GET /api/bookings to return a JSON array');
++
++    const mock = list.filter((b) => b.dataSource === 'mock');
++    assert.strictEqual(mock.length, account.bookings.length);
++    for (const b of mock) {
++      assert.ok(b.start && b.end, 'every booking has a time');
++      if (b.room) assert.ok(b.building && b.building.name, 'every booking with a room has a building name');
++    }
++  });
++
++  after(async () => {
++    if (server) server.close();
++    if (mongoose.connection.readyState !== 0) await mongoose.disconnect();
++  });
++});
+diff --git a/viewer/server/src/bookings/bookingViews.js b/viewer/server/src/bookings/bookingViews.js
+new file mode 100644
+index 0000000..72ee1f7
+--- /dev/null
++++ b/viewer/server/src/bookings/bookingViews.js
+@@ -0,0 +1,38 @@
++// Turns stored (or mock) bookings into what the My Bookings page shows: the time,
++// plus where it is, looked up from the rooms and buildings collections.
++//
++// A booking points at its room by ObjectId (booking.room === room._id), and a room
++// points at its building by name (room.inBuilding === building.buildName), the
++// same name-based link the rest of the viewer uses.
++//
++// -> [{
++//      _id, start, end, status, dataSource,
++//      room:     { _id, roomName, roomNum, capacity } | null   (null: room no longer exists)
++//      building: { name, address, classification } | null      (address null: building not found)
++//    }]   soonest first
++function toBookingViews(bookings, rooms, buildings) {
++  const roomsById = new Map(rooms.map((r) => [String(r._id), r]));
++  const buildingsByName = new Map(buildings.map((b) => [b.buildName, b]));
++
++  return bookings
++    .map((booking) => {
++      const room = booking.room != null ? roomsById.get(String(booking.room)) : undefined;
++      const building = room ? buildingsByName.get(room.inBuilding) : undefined;
++      return {
++        _id: String(booking._id),
++        start: booking.start ?? null,
++        end: booking.end ?? null,
++        status: booking.status || 'active',
++        dataSource: booking.dataSource,
++        room: room
++          ? { _id: String(room._id), roomName: room.roomName, roomNum: room.roomNum, capacity: room.capacity }
++          : null,
++        building: room
++          ? { name: room.inBuilding, address: building?.address ?? null, classification: building?.classification ?? null }
++          : null,
++      };
++    })
++    .sort((a, b) => new Date(a.start) - new Date(b.start) || 0);
++}
++
++module.exports = { toBookingViews };
+diff --git a/viewer/server/src/bookings/mockBookings.js b/viewer/server/src/bookings/mockBookings.js
+new file mode 100644
+index 0000000..f591871
+--- /dev/null
++++ b/viewer/server/src/bookings/mockBookings.js
+@@ -0,0 +1,83 @@
++// Demo bookings for the MOCK accounts in auth/mockUsers.js. They are built on
++// every request from the real `rooms` collection and come out in the same shape
++// as a stored booking, so the room/building lookup in bookingViews.js runs on them
++// exactly as it will on real bookings. Each one is marked dataSource: 'mock'.
++//
++// The same account always gets the same rooms (as long as the rooms don't
++// change), and the times are relative to today, so the demo never goes stale.
++
++const MINUTE = 60 * 1000;
++
++// Small deterministic hash + PRNG, so room picks are stable per username.
++function hashString(text) {
++  let h = 2166136261;
++  for (let i = 0; i < text.length; i += 1) {
++    h ^= text.charCodeAt(i);
++    h = Math.imul(h, 16777619);
++  }
++  return h >>> 0;
++}
++
++function seededRandom(seed) {
++  let a = seed;
++  return () => {
++    a = (a + 0x6d2b79f5) >>> 0;
++    let t = a;
++    t = Math.imul(t ^ (t >>> 15), t | 1);
++    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
++    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
++  };
++}
++
++function shuffled(items, seed) {
++  const random = seededRandom(seed);
++  const out = [...items];
++  for (let i = out.length - 1; i > 0; i -= 1) {
++    const j = Math.floor(random() * (i + 1));
++    [out[i], out[j]] = [out[j], out[i]];
++  }
++  return out;
++}
++
++// { day, at, minutes } -> start Date (server's local time)
++function slotStart({ day = 0, at }, now) {
++  const start = new Date(now);
++  start.setDate(start.getDate() + day);
++  if (at === 'now') {
++    start.setMinutes(start.getMinutes() < 30 ? 0 : 30, 0, 0);
++  } else {
++    const [hours, minutes] = String(at).split(':').map(Number);
++    start.setHours(hours, minutes || 0, 0, 0);
++  }
++  return start;
++}
++
++// account:        an entry from auth/mockUsers.js
++// rooms:          documents from the rooms collection
++// buildingNames:  Set of building names, so rooms that belong to a known building are preferred
++function buildMockBookings(account, rooms, buildingNames = new Set(), now = new Date()) {
++  const slots = account?.bookings ?? [];
++  if (slots.length === 0) return [];
++
++  const placed = rooms.filter((r) => buildingNames.has(r.inBuilding));
++  const candidates = (placed.length > 0 ? placed : rooms)
++    .slice()
++    .sort((a, b) => String(a._id).localeCompare(String(b._id)));
++  const pool = shuffled(candidates, hashString(account.username));
++
++  return slots.map((slot, i) => {
++    const room = pool.length > 0 ? pool[i % pool.length] : null;
++    const start = slotStart(slot, now);
++    return {
++      _id: `mock-${account.username}-${i + 1}`,
++      user: account.username,
++      room: room ? room._id : null,
++      start,
++      end: new Date(start.getTime() + slot.minutes * MINUTE),
++      status: 'active',
++      dataSource: 'mock',
++    };
++  });
++}
++
++module.exports = { buildMockBookings, slotStart };
+diff --git a/viewer/server/src/models/Booking.js b/viewer/server/src/models/Booking.js
+new file mode 100644
+index 0000000..371a6ac
+--- /dev/null
++++ b/viewer/server/src/models/Booking.js
+@@ -0,0 +1,28 @@
++const mongoose = require('mongoose');
++
++// Read-side description of the `bookings` collection. The viewer never writes it:
++// creating, cancelling and editing bookings (US1-US3) belong to the main server,
++// which has the write user. This is the shape the My Bookings page reads, so
++// please store bookings like this:
++//
++//   user     Pitt username of the student who booked, e.g. "abc123"
++//            (the same id Pitt SSO will give us, and what the session holds)
++//   room     ObjectId of the booked document in `rooms`
++//   start    Date the booking starts
++//   end      Date the booking ends
++//   status   'active' (default) or 'cancelled'; cancelled bookings are not shown
++//
++// `strict: false` lets fields the main app adds later come through untouched.
++const bookingSchema = new mongoose.Schema(
++  {
++    user: String,
++    room: mongoose.Schema.Types.ObjectId,
++    start: Date,
++    end: Date,
++    status: String,
++    createdAt: Date,
++  },
++  { strict: false, collection: 'bookings' },
++);
++
++module.exports = mongoose.model('Booking', bookingSchema);
+diff --git a/viewer/server/src/routes/auth.js b/viewer/server/src/routes/auth.js
+new file mode 100644
+index 0000000..504158c
+--- /dev/null
++++ b/viewer/server/src/routes/auth.js
+@@ -0,0 +1,40 @@
++const express = require('express');
++const provider = require('../auth/provider');
++const { setSessionCookie, clearSessionCookie, requireAuth } = require('../auth/session');
++
++const router = express.Router();
++
++// Mounted at /api/auth. Login and logout are the only non-GET requests the viewer
++// accepts (see the guard in app.js); they set or clear a cookie and never touch
++// the database.
++
++// GET /api/auth/provider -> what the sign-in page should show (mock: the demo accounts)
++router.get('/provider', (req, res) => res.json(provider.describe()));
++
++// POST /api/auth/login { username, password } -> { user } and a session cookie
++router.post('/login', express.json({ limit: '2kb' }), async (req, res) => {
++  const { username, password } = req.body ?? {};
++  if (typeof username !== 'string' || typeof password !== 'string' || !username.trim() || !password) {
++    return res.status(400).json({ error: 'Enter your Pitt username and password.' });
++  }
++  try {
++    const user = await provider.verifyCredentials(username, password);
++    if (!user) return res.status(401).json({ error: 'That username and password do not match.' });
++    setSessionCookie(res, user);
++    res.json({ user });
++  } catch (error) {
++    console.error(error);
++    res.status(500).json({ error: 'Sign-in failed' });
++  }
++});
++
++// POST /api/auth/logout -> 204, cookie cleared
++router.post('/logout', (req, res) => {
++  clearSessionCookie(res);
++  res.status(204).end();
++});
++
++// GET /api/auth/me -> { user } for the signed-in student, or 401
++router.get('/me', requireAuth, (req, res) => res.json({ user: req.user }));
++
++module.exports = router;
+diff --git a/viewer/server/src/routes/bookings.js b/viewer/server/src/routes/bookings.js
+new file mode 100644
+index 0000000..0e4cca6
+--- /dev/null
++++ b/viewer/server/src/routes/bookings.js
+@@ -0,0 +1,40 @@
++const express = require('express');
++const Booking = require('../models/Booking');
++const Building = require('../models/Building');
++const Room = require('../models/Room');
++const { requireAuth } = require('../auth/session');
++const { findMockAccount } = require('../auth/provider');
++const { buildMockBookings } = require('../bookings/mockBookings');
++const { toBookingViews } = require('../bookings/bookingViews');
++
++const router = express.Router();
++
++// GET /api/bookings -> the signed-in student's bookings, soonest first, each with
++// its room and building (shape documented in bookings/bookingViews.js).
++//
++// Only ever returns the bookings of the student in the session cookie; there is
++// deliberately no ?user= parameter.
++//
++// Stored bookings come from the `bookings` collection. Mock accounts also get
++// demo bookings (dataSource: 'mock'), so the page has something to show before
++// the main app can create bookings.
++router.get('/bookings', requireAuth, async (req, res) => {
++  try {
++    const { username } = req.user;
++    const [stored, rooms, buildings] = await Promise.all([
++      Booking.find({ user: username, status: { $ne: 'cancelled' } }).lean(),
++      Room.find().lean(),
++      Building.find().lean(),
++    ]);
++
++    const account = findMockAccount(username);
++    const mock = account ? buildMockBookings(account, rooms, new Set(buildings.map((b) => b.buildName))) : [];
++
++    res.json(toBookingViews([...stored, ...mock], rooms, buildings));
++  } catch (error) {
++    console.error(error);
++    res.status(500).json({ error: 'Failed to fetch bookings' });
++  }
++});
++
++module.exports = router;

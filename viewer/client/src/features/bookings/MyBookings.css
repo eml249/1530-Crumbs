@@ -42,6 +42,30 @@
 
 .bk a:focus-visible, .bk-past summary:focus-visible { outline: 3px solid #8fb0ff; outline-offset: 2px; border-radius: 3px; }
 
+/* Cancel booking button + confirmation modal */
+
+.bk-actions { align-self: start; }
+.bk-cancel-btn {
+  font: inherit; font-size: 14px; padding: 6px 12px; cursor: pointer;
+  background: #fff; color: #b3261e; border: 1px solid #e3b5b1; border-radius: 6px;
+}
+.bk-cancel-btn:hover { background: #fdf0ef; }
+.bk-cancel-btn:focus-visible, .bk-modal-buttons button:focus-visible { outline: 3px solid #8fb0ff; outline-offset: 2px; }
+
+.bk-modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 100;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.bk-modal { background: #fff; border-radius: 10px; padding: 24px; max-width: 400px; width: 100%; }
+.bk-modal h3 { margin: 0 0 12px; }
+.bk-modal-summary { margin: 0 0 8px; }
+.bk-modal-warn { margin: 0 0 16px; color: #666; font-size: 14px; }
+.bk-modal-error { color: #b3261e; font-size: 14px; }
+.bk-modal-buttons { display: flex; justify-content: flex-end; gap: 10px; }
+.bk-modal-buttons button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+.bk-modal-buttons .bk-danger { background: #b3261e; border-color: #b3261e; color: #fff; }
+.bk-modal-buttons button:disabled { opacity: 0.6; cursor: default; }
+
 @media (max-width: 600px) {
   .bk-row { grid-template-columns: 1fr; gap: 8px; }
 }

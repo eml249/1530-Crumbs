@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthContext';
 import BookingRow from './BookingRow';
 import { dayHeading, dayKey, hasEnded } from './format';
 import './MyBookings.css';
+import CancelBookingButton from './CancelBookingButton';
 
 // US5: a signed-in student sees the room (building, room number, address) and
 // the time of each of their bookings, grouped by day. Sign-in only: routes.jsx
@@ -21,7 +22,7 @@ function groupByDay(bookings) {
   return [...groups.values()];
 }
 
-function DayGroup({ bookings, now }) {
+function DayGroup({ bookings, now, onCancelled }) {
   const { title, date } = dayHeading(bookings[0].start, now);
   return (
     <section className="bk-day">
@@ -30,7 +31,9 @@ function DayGroup({ bookings, now }) {
       </h3>
       <ul className="bk-list">
         {bookings.map((b) => (
-          <BookingRow key={b._id} booking={b} now={now} />
+          <BookingRow key={b._id} booking={b} now={now}>
+            {onCancelled && <CancelBookingButton booking={b} now={now} onCancelled={onCancelled} />}
+          </BookingRow>
         ))}
       </ul>
     </section>
@@ -94,7 +97,7 @@ export default function MyBookings() {
               Nothing coming up. <Link to="/rooms">Browse study rooms</Link>
             </p>
           ) : (
-            groupByDay(upcoming).map((group) => <DayGroup key={dayKey(group[0].start)} bookings={group} now={now} />)
+            groupByDay(upcoming).map((group) => <DayGroup key={dayKey(group[0].start)} bookings={group} now={now} onCancelled={reload} />)
           )}
         </section>
       )}

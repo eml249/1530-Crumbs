@@ -2,7 +2,7 @@ import BuildingBrowser from './features/buildings/BuildingBrowser';
 import RoomBrowser from './features/rooms/RoomBrowser';
 import BuildingRooms from './features/assignments/BuildingRooms';
 import DatabaseViewer from './features/database/DatabaseViewer';
-import RoomsPage from './features/rooms/RoomsPage';
+//import RoomsPage from './features/rooms/RoomsPage';
 import MyBookings from './features/bookings/MyBookings';
 import SignInPage from './features/auth/SignInPage';
 import RequireAuth from './features/auth/RequireAuth';
@@ -15,7 +15,6 @@ export const pages = [
   { path: '/rooms', label: 'Rooms', element: <RoomBrowser /> },
   { path: '/by-building', label: 'Rooms by Building', element: <BuildingRooms /> },
   { path: '/database', label: 'Database', element: <DatabaseViewer /> },
-  { path: '/rooms', label: 'Rooms', element: <RoomsPage /> },
   {
     path: '/bookings',
     label: 'My Bookings',

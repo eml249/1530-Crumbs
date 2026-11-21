@@ -72,9 +72,18 @@ Open **http://localhost:5174** and ensure you see the Buildings page. You may br
 
 ## Current Features:
 ### In viewer:
- - View buildings with study spaces on the Pitt campus and filter them by classification (e.g. Dorm Hall, Academic Building)
- - View available rooms in the previously mentioned buildings, and sort by capacity and congestion (Currently a mix of placeholder and non placeholder sources, noted in each entry)
- - View database JSON files
+ - View Buildings
+   - Allows you to view study spaces on the Pitt campus and filter them by classification (e.g. Dorm Hall, Academic Building). To view these study spaces/buildings, click on the "Buildings" tab on the top of the screen and scroll down to see the list of spaces as well as filter buttons to sort out preferences.
+ - View Available Rooms
+   - In the previously mentioned buildings, View Available Rooms means you can sort rooms by capacity and congestion (Currently a mix of placeholder and non placeholder sources, noted in each entry). To view available rooms, click on the rooms tab at the top of the screen. Use the filter buttons to view the desired room types you want to see. You can also view rooms by building if you click on the "Rooms by Building" tab at the top of the screen. You can use the filter buttons to view desired buildings and see the room information associated with the building.
+ - View Database JSON Files
+   - This feature allows you to view the data of the buildings and rooms. To view the database, click the "Database" tab at the top of the screen. You can see a table of the data as well as the raw JSON file.
+ - View Booking Details
+   - View Booking Details allows you to look at the booking you’ve made with an account and other information pertaining to the space you booked. To view booking details, you can click on the “My Booking” tab on the top of the screen. You will be met with a sign in screen with example accounts to use for the purpose of the demo. Clicking “fill in” by one of the accounts then clicking “sign in” will take you to the bookings. Each booking is listed with the hours it's booked, the length of time it's booked for, the room number, location, and capacity. There is a sign out button in the top right corner to exit the account. 
+ - Cancel Booking Button
+   - The Cancel Booking Button is a part of the a Cancel Booking feature still being worked on. It is the button attached to each booking panel to give you the option to cancel. To cancel a booking, you can click the cancel booking button in the top right corner of the booking panels after signing in with your account. After clicking that button, you will get a confirmation screen to confirm you want to cancel the booking. Currently for the demo, the booking does not actually cancel and still stays in your account regardless.
+ - Filter Preferences
+   - Filter Preferences is a feature that allows you to view rooms and buildings based on different criteria. To filter preferences, you can look at the main screen after the website loads. Under the title listed “Campus Building Directory” you can click on five tabs to filter out and view certain buildings. Click on a building filter to view the buildings you want.
 
 ## Acknowledgements 
 Generative AI was used as a code assistant while developing our systems.
